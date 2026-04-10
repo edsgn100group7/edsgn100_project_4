@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROWESS | System Terminal</title>
+    <title>PROWESS | Employee Hub</title>
     <link rel="stylesheet" href="static/style.css">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,42 +22,19 @@
                     <span class="pulse"></span> STATUS: OPTIMIZATION_READY
                 </div>
                 <h1 class="brand">PROWESS</h1>
-                <h2 class="tagline">Physical-Remote-Optimized Work <br>Environment Scheduling Software</h2>
+                <h2 class="tagline">Employee Portal <br>Environment Scheduling Software</h2>
             </header>
 
-            <article class="blurb">
-                <p>
-                    <span class="code-label">// Problem Overview</span><br>
-                    Solving the logistical challenge of maintaining in-person groups while reducing office footprint. 
-                    Our engine organizes preferences into a system of expressions solvable by 
-                    <span class="mono">Google CP-SAT</span>.
-                </p>
-            </article>
 
             <nav class="button-stack">
-                <button class="btn btn-warning"
-                       hx-get="/org"
-                       hx-target="body"
-                      hx-swap="innerHTML">
-                   <span class="btn-id">02</span>
-                <span class="btn-text">Organizational Login</span>
-                </button>
-
-                <button class="btn btn-tertiary"
-                       hx-get="/employee"
-                       hx-target="body"
-                      hx-swap="innerHTML">
-                   <span class="btn-id">02</span>
-                <span class="btn-text">Employee Portal</span>
-                </button>
-
                 <button class="btn btn-info"
-                       hx-get="/backend"
-                       hx-target="body"
-                      hx-swap="innerHTML">
-                   <span class="btn-id">02A</span>
-                <span class="btn-text">Backend View</span>
-                </button>
+        hx-get="/"
+        hx-target="body"
+        hx-swap="innerHTML">
+    <span class="btn-id">01</span>
+    <span class="btn-text">Homepage</span>
+</button>
+
             </nav>
 
             <footer class="version-info">
