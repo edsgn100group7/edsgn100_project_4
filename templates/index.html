@@ -1,27 +1,85 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>ian lisien</title>
-        <link rel="stylesheet" href="static/style.css">
-    </head>
-    <body>
-        <div class="bkg-wrap">
-            <div class="stars">
-                <img src="static/asterisk.svg" class="star-image">
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROWESS | System Terminal</title>
+    <link rel="stylesheet" href="static/style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Left Panel: Content & Controls -->
+        <section class="control-panel">
+            <header>
+                <div class="system-status">
+                    <span class="pulse"></span> STATUS: OPTIMIZATION_READY
+                </div>
+                <h1 class="brand">PROWESS</h1>
+                <h2 class="tagline">Provably Optimal Hybrid Work <br>Scheduling System</h2>
+            </header>
+
+            <article class="blurb">
+                <p>
+                    <span class="code-label">// Problem Overview</span><br>
+                    Solving the logistical challenge of maintaining in-person groups while reducing office footprint. 
+                    Our engine organizes preferences into a system of expressions solvable by 
+                    <span class="mono">Google CP-SAT</span>.
+                </p>
+            </article>
+
+            <nav class="button-stack">
+                <button class="btn btn-info" hx-get="/org">
+                    <span class="btn-id">01</span>
+                    <span class="btn-text">Organizational Login</span>
+                </button>
+                
+                <button class="btn btn-tertiary" hx-get="/employee">
+                    <span class="btn-id">02</span>
+                    <span class="btn-text">Employee Portal</span>
+                </button>
+
+                <button class="btn btn-warning" hx-get="/admin">
+                    <span class="btn-id">03</span>
+                    <span class="btn-text">Expose Backend_View</span>
+                </button>
+            </nav>
+
+            <footer class="version-info">
+                v1.0.4-stable | Mixed-Integer Linear Problem Solver
+            </footer>
+        </section>
+
+        <!-- Right Panel: Infographic Placeholder -->
+        <section class="visualizer-panel">
+            <div class="infographic-placeholder">
+                <div class="schematic-header">
+                    [ SCHEMATIC_VIEW: CONSTRAINTS_MATRIX ]
+                </div>
+                <div class="abstract-grid">
+                    <!-- Placeholder visual elements -->
+                    <div class="node-line" style="top: 20%; left: 10%; width: 60%;"></div>
+                    <div class="node-line" style="top: 40%; left: 30%; width: 50%;"></div>
+                    <div class="node-line" style="top: 70%; left: 15%; width: 40%;"></div>
+                    <div class="dot" style="top: 20%; left: 10%;"></div>
+                    <div class="dot" style="top: 20%; left: 70%;"></div>
+                    <div class="dot" style="top: 40%; left: 30%;"></div>
+                    <div class="dot" style="top: 40%; left: 80%;"></div>
+                    <div class="dot" style="top: 70%; left: 15%;"></div>
+                    <div class="dot" style="top: 70%; left: 55%;"></div>
+                </div>
+                <div class="math-overlay">
+                    maximize ( Σ preferences * priorities )
+                </div>
             </div>
-            <div class="grad-filter"></div>
-            <div class="mtn-wrap">
-                <svg class="mt-nittany-svg" viewBox="-522.99 -167.8 388.14 182.81" xmlns="http://www.w3.org/2000/svg"><path style="pointer-events: fill;" d="m-450.89-167.8c-4.9469 2e-3 -9.6986 0.12186-10.559 0.26717s-3.0631 0.33865-4.8948 0.42995-3.4241 0.22352-3.5388 0.29352c-0.11469 0.07-2.8531 0.23005-6.0854 0.35605-6.1783 0.24084-6.3249 0.26576-12.405 2.0882l-2.8236 0.84646-4.5847-0.43408c-3.1207-0.29524-7.9637-0.45816-15.168-0.51056-5.8208-0.0424-10.792-0.16504-11.046-0.27234-0.34427-0.14504-0.46416-0.0687-0.46716 0.29663-1e-3 0.1258-6e-3 0.21497-0.0181 0.26923-0.0702-0.0463-0.0778-0.0987-0.0589-0.15865 0.051-0.16215 0.0746-0.25321 0.0636-0.27233v-5.2e-4l-5.2e-4 -5.1e-4 -5.2e-4 -5.2e-4v-5.2e-4c-0.0184-0.0113-0.0867 0.0744-0.21756 0.25632-8e-3 0.0111-0.016 0.0253-0.0238 0.0424-9e-3 -0.013-0.0188-0.027-0.0289-0.0413-0.11908-0.16837-0.1857-0.24305-0.20722-0.22583-0.015 0.0146-6e-3 0.0805 0.0243 0.19534 0.0171 0.0639 0.0685 0.12058 0.17725 0.17105-0.13862 0.48995-0.22922 1.9865-0.23099 3.9217-1e-3 0.85299 2e-3 1.5097 0.0129 2.0118h-0.016v62.695c-5.6e-4 7e-3 -1e-3 0.0141-1e-3 0.0212 0 7e-3 4.8e-4 0.0143 1e-3 0.0212v18.488c-1e-3 0.0719-6.9e-4 0.14957 0 0.2341v43.521c-1e-5 0.0128 0 0.0258 0 0.0388 0 6e-3 -1e-5 0.0117 0 0.0176v10.016c-1e-5 0.0163 0 0.0327 0 0.0491v10.808c-1e-5 0.0161 0 0.0328 0 0.0491 0 0.0441-1e-5 0.0874 0 0.13023v5.8053c-1e-5 7.1e-4 0 2e-3 0 3e-3v8.415c-5.5e-4 0.0113-3.1e-4 0.0229 0 0.0351v12.937h388.14v-167.06l-2.7735 0.12351c-6.0192 0.26808-6.839 0.37197-11.509 1.4542-2.5754 0.59676-3.4635 0.6548-12.171 0.79427-8.9998 0.14414-9.8592 0.20936-15.081 1.1457-1.7572 0.31506-16.439 0.14055-19.05-0.22635-1.2369-0.17379-3.9754-0.33773-6.0854-0.36483-2.11-0.0271-8.4204-0.20343-14.023-0.39171-9.1384-0.3071-11.327-0.28796-14.552 0.12816-3.1821 0.41062-6.1944 0.41633-8.5426 0.016-4.4438-0.75748-7.9847-0.55218-17.651 1.0232-1.2369 0.20159-2.7847 0.5599-3.4396 0.79634-3.2078 1.1582-3.7938 1.1944-14.684 0.90227-10.218-0.27404-47.996-0.60087-61.516-0.53227-8.5964 0.0436-13.322-0.26575-15.454-1.0113-0.85953-0.30059-1.8611-0.54674-2.2257-0.54674-1.2577 0-12.675-3.7061-16.055-5.2116-3.5468-1.5798-6.5793-3.0523-7.276-3.5326-0.3638-0.25079-1.0782-0.57405-1.5875-0.71831-1.1368-0.32197-6.382-2.4287-6.7469-2.7099-0.42808-0.32986-4.081-1.8474-6.0947-2.5321-1.8967-0.64494-3.7748-1.0244-9.648-1.9477-2.5668-0.4035-5.203-0.55113-11.774-0.66042-8.74-0.14536-15.866-0.47373-20.241-0.93276-6.5468-0.68697-9.5071-0.82311-17.861-0.82011z"/></svg>
-            </div>
-        </div>
-        <div class="main-wrap">
-            <div class="title-wrap">
-                <div class="spacer"></div>
-                <span class="title">Hi!</span>
-                <span class="title">I'm Ian Lisien</span>
-                <span class="subtitle">1st year in Chemical Engineering and Plant Sciences</span>
-                <span class="subtitle">Schreyer Honors College at Penn State!</span>
-            </div>
-        </div>
-    </body>
+        </section>
+    </div>
+
+</body>
 </html>
