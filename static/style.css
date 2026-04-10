@@ -1,10 +1,10 @@
 :root {
     /* Required Color Variables */
-    --bg-color: #0d0f12;        /* Deep technical black */
-    --text-color: #e2e8f0;      /* Soft white */
-    --info-color: #38bdf8;      /* Cyber Blue */
-    --warning-color: #fbbf24;   /* Warning Amber */
-    --tertiary-color: #2dd4bf;  /* Matrix Teal */
+    --bg-color: #FFFFE0;
+    --text-color: #000000;
+    --info-color: #ADD8E6;
+    --warning-color: #FF997A;
+    --tertiary-color: #B6DB98;
     
     /* Layout Variables */
     --panel-border: 1px solid #2d3748;
