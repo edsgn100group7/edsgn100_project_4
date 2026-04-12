@@ -43,10 +43,11 @@
         </section>
 
         <!-- Right Panel: Infographic Placeholder -->
-        <section class="visualizer-panel">
+       <section class="visualizer-panel">
+          
             <div class="infographic-placeholder">
                 <div class="schematic-header">
-                    [ SCHEMATIC_VIEW: CONSTRAINTS_MATRIX ]
+                    Employee Login
                 </div>
                 <div class="abstract-grid">
                     <!-- Placeholder visual elements -->
@@ -61,8 +62,28 @@
                     <div class="dot" style="top: 70%; left: 55%;"></div>
                 </div>
                 <div class="math-overlay">
-                    maximize ( Σ preferences * priorities )
-                </div>
+                    <div class="infographic-placeholder">
+
+   
+    <!-- Text box BELOW the schematic text -->
+    <input type="text"
+           id="employee-input"
+           placeholder="Username"
+           class="employee-textbox">
+              <input type="text"
+           id="employee-input"
+           placeholder="Password"
+           class="employee-textbox">
+
+           <div style="height: 30px;"></div>
+
+  <button class="btn btn-info"
+        hx-get="/orgpage"
+        hx-target="body"
+        hx-swap="innerHTML">
+    <span class="btn-text">Submit</span>
+</button>
+
             </div>
         </section>
     </div>

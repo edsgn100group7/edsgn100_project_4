@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROWESS | Employee Login</title>
+    <title>PROWESS | Organizational Hub</title>
     <link rel="stylesheet" href="static/style.css">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,15 +22,16 @@
                     <span class="pulse"></span> STATUS: OPTIMIZATION_READY
                 </div>
                 <h1 class="brand">PROWESS</h1>
-                <h2 class="tagline">Employee Login <br>Environment Scheduling Software</h2>
+                <h2 class="tagline">Organization Login <br>Environment Scheduling Software</h2>
             </header>
 
 
             <nav class="button-stack">
-                <button class="btn btn-info"
+                   <button class="btn btn-info"
         hx-get="/"
         hx-target="body"
         hx-swap="innerHTML">
+    <span class="btn-id">01</span>
     <span class="btn-text">Homepage</span>
 </button>
 
@@ -43,10 +44,9 @@
 
         <!-- Right Panel: Infographic Placeholder -->
         <section class="visualizer-panel">
-          
             <div class="infographic-placeholder">
                 <div class="schematic-header">
-                    Employee Login
+                    
                 </div>
                 <div class="abstract-grid">
                     <!-- Placeholder visual elements -->
@@ -61,28 +61,7 @@
                     <div class="dot" style="top: 70%; left: 55%;"></div>
                 </div>
                 <div class="math-overlay">
-                    <div class="infographic-placeholder">
-
-   
-    <!-- Text box BELOW the schematic text -->
-    <input type="text"
-           id="employee-input"
-           placeholder="Username"
-           class="employee-textbox">
-              <input type="text"
-           id="employee-input"
-           placeholder="Password"
-           class="employee-textbox">
-
-           <div style="height: 30px;"></div>
-
-  <button class="btn btn-info"
-        hx-get="/employeepage"
-        hx-target="body"
-        hx-swap="innerHTML">
-    <span class="btn-text">Submit</span>
-</button>
-
+                </div>
             </div>
         </section>
     </div>
