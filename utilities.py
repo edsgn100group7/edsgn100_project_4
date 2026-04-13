@@ -9,9 +9,8 @@ class Employee:
         self.email = fake.email()
         self.job_title = fake.job()
         self.department = fake.word().capitalize()
-        self.salary = random.randint(40000, 120000)
 
-
+fake.job
 
 def generate_employees(n_of_employees):
     for i_e in range(n_of_employees):
