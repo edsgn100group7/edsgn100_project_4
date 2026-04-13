@@ -13,8 +13,5 @@ class Employee:
         self.job_title = fake.job()
         self.department = choice(DEPARTMENTS)
 
-fake.job_male
-
 def generate_employees(n_of_employees):
-    for i_e in range(n_of_employees):
-        
+    return [Employee() ]
