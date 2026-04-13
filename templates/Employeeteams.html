@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROWESS | Organizational Hub</title>
+    <title>PROWESS | Employee Project Teams
+ </title>
     <link rel="stylesheet" href="static/style.css">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,7 +23,8 @@
                     <span class="pulse"></span> STATUS: OPTIMIZATION_READY
                 </div>
                 <h1 class="brand">PROWESS</h1>
-                <h2 class="tagline">Organization Login <br>Environment Scheduling Software</h2>
+                <h2 class="tagline">Employee Project Teams
+ <br>Environment Scheduling Software</h2>
             </header>
 
 
@@ -34,6 +36,14 @@
     <span class="btn-id">01</span>
     <span class="btn-text">Homepage</span>
 </button>
+<button class="btn btn-info"
+        hx-get="/orgpage"
+        hx-target="body"
+        hx-swap="innerHTML">
+              <span class="btn-id">02</span>
+    <span class="btn-text">Organization Hub</span>
+</button>
+
 
             </nav>
 
@@ -61,36 +71,6 @@
                     <div class="dot" style="top: 70%; left: 55%;"></div>
                 </div>
                 <div class="math-overlay">
-                      <div style="height: 30px;"></div>
-
-  <button class="btn btn-warning"
-        hx-get="/coschedule"
-        hx-target="body"
-        hx-swap="innerHTML">
-         <span class="btn-id">01</span>
-    <span class="btn-text">Company Schedules</span>
-</button>
-
-  <div style="height: 30px;"></div>
-
-  <button class="btn btn-info"
-        hx-get="/Indschedule"
-        hx-target="body"
-        hx-swap="innerHTML">
-         <span class="btn-id">02</span>
-    <span class="btn-text">Individual Employee Schedule and Availability</span>
-</button>
-
-  <div style="height: 30px;"></div>
-
-  <button class="btn btn-tertiary"
-        hx-get="/Employeeteams"
-        hx-target="body"
-        hx-swap="innerHTML">
-         <span class="btn-id">03</span>
-    <span class="btn-text">Employee Project Teams</span>
-</button>
-
                 </div>
             </div>
         </section>

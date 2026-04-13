@@ -43,5 +43,13 @@ def empavailability():
 def coschedule():
     return render_template("coschedule.html")
 
+@app.route("/Indschedule")
+def Indschedule():
+    return render_template("Indschedule.html")
+
+@app.route("/Employeeteams")
+def Employeeteams():
+    return render_template("Employeeteams.html")
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
