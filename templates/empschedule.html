@@ -51,7 +51,23 @@
 
         <!-- Right Panel: Infographic Placeholder -->
        <section class="visualizer-panel">
-          
+          <section class="visualizer-panel">
+
+    <div class="infographic-placeholder">
+        <!-- your schematic stuff -->
+    </div>
+
+    <!-- LIVE SCHEDULE GOES HERE -->
+    <div id="live-schedule"
+         hx-get="/schedule"
+         hx-trigger="load, every 5s"
+         hx-target="#live-schedule"
+         hx-swap="innerHTML">
+        Loading schedule...
+    </div>
+
+</section>
+
             <div class="infographic-placeholder">
                 <div class="schematic-header">
                     Personal Schedule

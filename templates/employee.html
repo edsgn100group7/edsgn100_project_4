@@ -65,6 +65,7 @@
 
    
     <!-- Text box BELOW the schematic text -->
+    <!-- Old Login Text Boxes
     <input type="text"
            id="employee-input"
            placeholder="Username"
@@ -74,18 +75,53 @@
            placeholder="Password"
            class="employee-textbox">
 
-           <div style="height: 30px;"></div>
+           <div style="height: 30px;"></div>    
 
-  <button class="btn btn-info"
+    <button class="btn btn-info"
         hx-get="/employeepage"
         hx-target="body"
         hx-swap="innerHTML">
     <span class="btn-text">Submit</span>
+
+                    -->
+
+<form class="login-form"
+      hx-get="/employeepage"
+      hx-target="body"
+      hx-swap="innerHTML">
+
+    <div class="input-group floating">
+        <input type="email" id="employee-email" required>
+        <label for="employee-email">Employee Email</label>
+    </div>
+
+    <div class="input-group floating password-group">
+        <input type="password" id="employee-password" required>
+        <label for="employee-password">Password</label>
+        <span class="toggle-password" onclick="togglePassword()">👁</span>
+    </div>
+
+    <button class="btn btn-info login-btn">
+        <span class="btn-text">Login</span>
+        <span class="arrow">→</span>
+    </button>
+
+</form>  
+
+    
 </button>
 
             </div>
         </section>
     </div>
 
+
+
+    <script>
+        function togglePassword() {
+            const input = document.getElementById("employee-password");
+            input.type = input.type === "password" ? "text" : "password";
+        }
+    </script>
 </body>
 </html>
