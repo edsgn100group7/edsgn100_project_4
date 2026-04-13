@@ -310,3 +310,18 @@ body {
 .toggle-password:hover {
     opacity: 1;
 }
+
+/* BACKEND HEADER TEXT */
+.access-header {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    opacity: 0.7;
+}
+
+/* BACKEND INPUT DIFFERENTIATION */
+#access-code:focus {
+    box-shadow: 
+        3px 3px 0px var(--text-color),
+        0 0 8px var(--warning-color); /* orange glow instead of blue */
+}
