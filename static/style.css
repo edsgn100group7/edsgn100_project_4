@@ -311,6 +311,74 @@ body {
     opacity: 1;
 }
 
+:root {
+    --card: #ffffff;
+    --primary: #6366f1;
+    --rank-bg: #e0e7ff;
+    --rank-text: #4338ca;
+}
+
+.calendar-card {
+    background: var(--card);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    width: 100%;
+    max-width: 800px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5 Days: Mon-Fri */
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.day-box {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.day-box:hover { border-color: var(--primary); background: #f8fafc; }
+
+/* Styling for a ranked day */
+.day-box.is-ranked {
+    border-color: var(--primary);
+    background: var(--rank-bg);
+}
+
+.rank-badge {
+    background: var(--primary);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+}
+
+.day-name { font-weight: 600; color: #475569; text-transform: uppercase; font-size: 0.7rem; }
+.status-label { font-size: 0.75rem; margin-top: 5px; color: #94a3b8; }
+
+.summary {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.limit-info { font-size: 0.9rem; color: #64748b; }
 /* BACKEND HEADER TEXT */
 .access-header {
     font-size: 0.75rem;
