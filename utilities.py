@@ -1,6 +1,9 @@
 from faker import Faker 
+from random import choice
 
 fake = Faker()
+
+DEPARTMENTS = ['Tree', 'Soldier', 'With', 'Him', 'School', 'Present', 'Deep', 'Pass', 'Central', 'Responsibility', 'Benefit', 'Catch', 'Other', 'Order', 'Space', 'Weight', 'Heavy', 'Traditional', 'Recently', 'Especially', 'Gun', 'Case', 'Performance', 'All', 'Direction']
 
 class Employee:
     def __init__(self):
@@ -8,7 +11,7 @@ class Employee:
         self.last_name = fake.last_name()
         self.email = fake.email()
         self.job_title = fake.job()
-        self.department = fake.word().capitalize()
+        self.department = choice(DEPARTMENTS)
 
 fake.job_male
 
