@@ -14,4 +14,4 @@ class Employee:
         self.department = choice(DEPARTMENTS)
 
 def generate_employees(n_of_employees):
-    return [Employee() for _ in ]
+    return [Employee() for _ in range(n_of_employees)]
