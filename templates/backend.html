@@ -44,9 +44,7 @@
         <!-- Right Panel: Infographic Placeholder -->
         <section class="visualizer-panel">
             <div class="infographic-placeholder">
-                <div class="schematic-header">
-                    [ SCHEMATIC_VIEW: CONSTRAINTS_MATRIX ]
-                </div>
+               
                 <div class="abstract-grid">
                     <!-- Placeholder visual elements -->
                     <div class="node-line" style="top: 20%; left: 10%; width: 60%;"></div>
@@ -60,8 +58,22 @@
                     <div class="dot" style="top: 70%; left: 55%;"></div>
                 </div>
                 <div class="math-overlay">
-                    maximize ( Σ preferences * priorities )
+                Enter Backend Access Code
                 </div>
+                 <input type="text"
+           id="employee-input"
+           placeholder="Enter Code"
+           class="employee-textbox">
+        
+
+           <div style="height: 30px;"></div>
+
+  <button class="btn btn-warning"
+        hx-get="/orgpage"
+        hx-target="body"
+        hx-swap="innerHTML">
+    <span class="btn-text">Submit</span>
+</button>
             </div>
         </section>
     </div>
