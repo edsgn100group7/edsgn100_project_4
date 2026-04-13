@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROWESS | Organizational Hub</title>
+    <title>PROWESS | Employee Hub</title>
     <link rel="stylesheet" href="static/style.css">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,17 +21,17 @@
                 <div class="system-status">
                     <span class="pulse"></span> STATUS: OPTIMIZATION_READY
                 </div>
-                <h1 class="brand">PROWESS</h1>
-                <h2 class="tagline">Organization Login <br>Environment Scheduling Software</h2>
+         44f66..6306117  main -> main
+       <h1 class="brand">PROWESS</h1>
+                <h2 class="tagline">Employee Portal <br>Environment Scheduling Software</h2>
             </header>
 
 
             <nav class="button-stack">
-                   <button class="btn btn-info"
+                <button class="btn btn-info"
         hx-get="/"
         hx-target="body"
         hx-swap="innerHTML">
-    <span class="btn-id">01</span>
     <span class="btn-text">Homepage</span>
 </button>
 
@@ -43,11 +43,11 @@
         </section>
 
         <!-- Right Panel: Infographic Placeholder -->
-       <section class="visualizer-panel">
+        <section class="visualizer-panel">
           
             <div class="infographic-placeholder">
                 <div class="schematic-header">
-                    Organizational Login
+                    Employee Hub
                 </div>
                 <div class="abstract-grid">
                     <!-- Placeholder visual elements -->
@@ -63,27 +63,38 @@
                 </div>
                 <div class="math-overlay">
                     <div class="infographic-placeholder">
+     <div style="height: 30px;"></div>
 
-   
-    <!-- Text box BELOW the schematic text -->
-    <input type="text"
-           id="employee-input"
-           placeholder="Username"
-           class="employee-textbox">
-              <input type="text"
-           id="employee-input"
-           placeholder="Password"
-           class="employee-textbox">
-
-           <div style="height: 30px;"></div>
-
-  <button class="btn btn-info"
-        hx-get="/orgpage"
+  <button class="btn btn-warning"
+        hx-get="/empschedule"
         hx-target="body"
         hx-swap="innerHTML">
-    <span class="btn-text">Submit</span>
+         <span class="btn-id">01</span>
+    <span class="btn-text">This Week's Schedule</span>
 </button>
 
+  <div style="height: 30px;"></div>
+
+  <button class="btn btn-info"
+        hx-get="/empavailability"
+        hx-target="body"
+        hx-swap="innerHTML">
+         <span class="btn-id">02</span>
+    <span class="btn-text">Enter Availability</span>
+</button>
+
+  <div style="height: 30px;"></div>
+
+  <button class="btn btn-tertiary"
+        hx-get="/teamschedule"
+        hx-target="body"
+        hx-swap="innerHTML">
+         <span class="btn-id">03</span>
+    <span class="btn-text">Teammate Schedule</span>
+</button>
+
+   
+ 
             </div>
         </section>
     </div>
