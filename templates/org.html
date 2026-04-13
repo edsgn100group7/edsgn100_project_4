@@ -66,27 +66,43 @@
 
    
     <!-- Text box BELOW the schematic text -->
-    <input type="text"
-           id="employee-input"
-           placeholder="Username"
-           class="employee-textbox">
-              <input type="text"
-           id="employee-input"
-           placeholder="Password"
-           class="employee-textbox">
-
-           <div style="height: 30px;"></div>
-
-  <button class="btn btn-info"
+    <form class="login-form"
         hx-get="/orgpage"
         hx-target="body"
         hx-swap="innerHTML">
-    <span class="btn-text">Submit</span>
+
+        <!-- Organization Email -->
+        <div class="input-group floating">
+            <input type="email" id="org-email" required>
+            <label for="org-email">Organization Email</label>
+        </div>
+
+        <!-- Password -->
+        <div class="input-group floating password-group">
+            <input type="password" id="org-password" required>
+            <label for="org-password">Password</label>
+            <span class="toggle-password" onclick="togglePassword()">👁</span>
+        </div>
+
+        <!-- Login Button -->
+        <button class="btn btn-info login-btn">
+            <span class="btn-text">Login</span>
+            <span class="arrow">→</span>
+        </button>
+
+    </form>
 </button>
 
             </div>
         </section>
     </div>
+
+    <script>
+        function togglePassword() {
+            const input = document.getElementById("org-password");
+            input.type = input.type === "password" ? "text" : "password";
+        }
+    </script>
 
 </body>
 </html>
