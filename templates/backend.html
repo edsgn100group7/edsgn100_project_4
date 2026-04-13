@@ -58,25 +58,45 @@
                     <div class="dot" style="top: 70%; left: 55%;"></div>
                 </div>
                 <div class="math-overlay">
-                Enter Backend Access Code
-                </div>
-                 <input type="text"
-           id="employee-input"
-           placeholder="Enter Code"
-           class="employee-textbox">
-        
-
-           <div style="height: 30px;"></div>
-
-  <button class="btn btn-warning"
+                    <div class="infographic-placeholder">
+                
+    <form class="login-form"
         hx-get="/orgpage"
         hx-target="body"
         hx-swap="innerHTML">
-    <span class="btn-text">Submit</span>
+
+        <div class="access-header mono">
+            ENTER ACCESS CODE
+        </div>
+
+        <!-- Access Code (Password Style) -->
+        <div class="input-group floating password-group">
+            <input type="password" id="access-code" required>
+            <label for="access-code">ACCESS_KEY</label>
+            <span class="toggle-password" onclick="toggleAccess()">👁</span>
+        </div>
+
+        <!-- Submit -->
+        <button class="btn btn-warning login-btn">
+            <span class="btn-text">Authenticate</span>
+            <span class="arrow">→</span>
+        </button>
+
+    </form>
+
+                        
 </button>
             </div>
         </section>
     </div>
 
+
+
+    <script>
+        function toggleAccess() {
+            const input = document.getElementById("access-code");
+            input.type = input.type === "password" ? "text" : "password";
+        }
+    </script>
 </body>
 </html>
