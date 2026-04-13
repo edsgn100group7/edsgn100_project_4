@@ -9,7 +9,7 @@ class Employee:
     def __init__(self):
         self.first_name = fake.first_name()
         self.last_name = fake.last_name()
-        self.email = fake.email()
+        self.email = fake.email(0,"psu.edu")
         self.job_title = fake.job()
         self.department = choice(DEPARTMENTS)
 
