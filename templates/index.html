@@ -68,9 +68,6 @@
         <!-- Right Panel: Infographic Placeholder -->
         <section class="visualizer-panel">
             <div class="infographic-placeholder">
-                <div class="schematic-header">
-                    [ SCHEMATIC_VIEW: CONSTRAINTS_MATRIX ]
-                </div>
                 <div class="abstract-grid">
                     <!-- Placeholder visual elements -->
                     <div class="node-line" style="top: 20%; left: 10%; width: 60%;"></div>
@@ -82,9 +79,12 @@
                     <div class="dot" style="top: 40%; left: 80%;"></div>
                     <div class="dot" style="top: 70%; left: 15%;"></div>
                     <div class="dot" style="top: 70%; left: 55%;"></div>
+
+                    <img src="{{ url_for('static', filename='images/prowess_diagram.png') }}" 
+                        class="schematic-image">
+
                 </div>
                 <div class="math-overlay">
-                    maximize ( Σ preferences * priorities )
                 </div>
             </div>
         </section>
