@@ -11,6 +11,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        function confirmHomepageNavigation() {
+            return confirm('Are you sure you want to return to homepage?');
+        }
+    </script>
 </head>
 <body>
 
@@ -31,7 +36,8 @@
                 <button class="btn btn-info"
         hx-get="/"
         hx-target="body"
-        hx-swap="innerHTML">
+        hx-swap="innerHTML"
+        onclick="return confirmHomepageNavigation()">
     <span class="btn-text">Homepage</span>
 </button>
 

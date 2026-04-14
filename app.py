@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, session, jsonify
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import calendar
 from utilities import generate_employees, generate_project_teams
 
@@ -21,7 +21,7 @@ def generate_sample_events():
         
         # Add 3-5 random events for each employee
         import random
-        from datetime import datetime, timedelta
+        from datetime import datetime
         
         num_events = random.randint(3, 5)
         for i in range(num_events):
