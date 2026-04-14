@@ -53,10 +53,20 @@ def generate_project_teams(num_teams=8, employees=None):
 class Employee:
     def __init__(self):
         self.first_name = fake.first_name()
+        self.middle_name = fake.first_name()
         self.last_name = fake.last_name()
-        self.email = fake.email(0,"psu.edu")
+        self.email = self.generate_email()
         self.job_title = fake.job()
         self.department = choice(DEPARTMENTS)
+    
+    def generate_email(self):
+        # Format: first letter of first, middle last name, then 4 numbers, @psu.edu
+        # Example: John Henry Mimbole = jhm5384@psu.edu
+        first_initial = self.first_name[0].lower()
+        middle_initial = self.middle_name[0].lower()
+        last_initial = self.last_name[0].lower()
+        random_numbers = fake.random_int(min=1000, max=9999)
+        return f"{first_initial}{middle_initial}{last_initial}{random_numbers}@psu.edu"
 
 def generate_employees(n_of_employees):
     employees = []

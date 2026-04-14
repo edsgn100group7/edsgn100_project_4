@@ -55,26 +55,417 @@
         <!-- Right Panel: Infographic Placeholder -->
         <section class="visualizer-panel">
             <div class="infographic-placeholder">
-                <div class="schematic-header">
+                <div class="management-container">
+                    <div class="management-header">
+                        <h2>Employee Schedule Management</h2>
+                        <p class="management-subtitle">Enter employee email to view their personal schedule</p>
+                    </div>
                     
-                </div>
-                <div class="abstract-grid">
-                    <!-- Placeholder visual elements -->
-                    <div class="node-line" style="top: 20%; left: 10%; width: 60%;"></div>
-                    <div class="node-line" style="top: 40%; left: 30%; width: 50%;"></div>
-                    <div class="node-line" style="top: 70%; left: 15%; width: 40%;"></div>
-                    <div class="dot" style="top: 20%; left: 10%;"></div>
-                    <div class="dot" style="top: 20%; left: 70%;"></div>
-                    <div class="dot" style="top: 40%; left: 30%;"></div>
-                    <div class="dot" style="top: 40%; left: 80%;"></div>
-                    <div class="dot" style="top: 70%; left: 15%;"></div>
-                    <div class="dot" style="top: 70%; left: 55%;"></div>
-                </div>
-                <div class="math-overlay">
+                    <div class="search-form">
+                        <form id="employee-search-form">
+                            <div class="input-group">
+                                <input type="email" 
+                                       id="employee-email-input" 
+                                       name="employee_email" 
+                                       placeholder="Enter employee email (e.g., john.doe@psu.edu)" 
+                                       required>
+                                <button type="button" class="search-btn" onclick="handleSearch()">
+                                    <span class="search-icon">Search</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div id="schedule-results" class="schedule-results">
+                        <div id="loading-indicator" class="loading-indicator" style="display: none;">Loading...</div>
+                        <div class="placeholder-message">
+                            <div class="placeholder-icon">Calendar</div>
+                            <p>Enter an employee email above to view their schedule</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
     </div>
 
+<style>
+        .management-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        
+        .management-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .management-header h2 {
+            color: #000;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+        
+        .management-subtitle {
+            color: #333;
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .search-form {
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            display: flex;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        #employee-email-input {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #ccc;
+            background: #fff;
+            color: #000;
+            border-radius: 8px 0 0 8px;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        #employee-email-input::placeholder {
+            color: #666;
+        }
+        
+        #employee-email-input:focus {
+            border-color: #333;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-btn {
+            padding: 15px 25px;
+            background: rgba(76, 175, 80, 0.8);
+            border: 1px solid rgba(76, 175, 80, 0.9);
+            color: #000;
+            color: #fff;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        
+        .search-btn:hover {
+            background: rgba(76, 175, 80, 1);
+        }
+        
+        .schedule-results {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .placeholder-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #333;
+        }
+        
+        .placeholder-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        
+        /* Employee Calendar Styles */
+        .employee-schedule-view {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .schedule-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .schedule-header h3 {
+            color: #fff;
+            margin: 0 0 5px 0;
+            font-size: 24px;
+        }
+        
+        .schedule-email {
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0 0 15px 0;
+            font-size: 14px;
+        }
+        
+        .calendar-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .nav-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .current-month {
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .calendar-grid {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .weekday {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            font-size: 12px;
+            padding: 5px;
+        }
+        
+        .calendar-week {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .calendar-day {
+            min-height: 80px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .calendar-day.has-day {
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .calendar-day.has-day:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .day-number {
+            color: #fff;
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .day-events {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .event-item {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            border-radius: 3px;
+            padding: 2px 4px;
+            color: #fff;
+            font-size: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .event-title {
+            font-weight: 500;
+        }
+        
+        .event-time {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 9px;
+        }
+        
+        .schedule-summary {
+            text-align: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .summary-text {
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+            font-size: 14px;
+        }
+        
+        .event-count {
+            color: #fff;
+            font-weight: 600;
+        }
+        
+        .error-message {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #000;
+        }
+        
+        .error-title {
+            font-weight: 600;
+            color: #d32f2f;
+            margin-bottom: 10px;
+        }
+        
+        .error-details {
+            margin-bottom: 10px;
+        }
+        
+        .available-emails {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .available-emails strong {
+            color: #000;
+        }
+    </style>
+    <script>
+        // Function to display error messages
+        function displayError(message, availableEmails = []) {
+            const resultsDiv = document.getElementById('schedule-results');
+            let errorHtml = `
+                <div class="error-message">
+                    <div class="error-title">Employee Not Found</div>
+                    <div class="error-details">${message}</div>
+            `;
+            
+            if (availableEmails.length > 0) {
+                errorHtml += `
+                    <div class="available-emails">
+                        <strong>Example employee emails:</strong><br>
+                        ${availableEmails.join(', ')}
+                    </div>
+                `;
+            }
+            
+            errorHtml += '</div>';
+            resultsDiv.innerHTML = errorHtml;
+        }
+        
+        // Handle search function for button click
+        function handleSearch() {
+            console.log('DEBUG: handleSearch called');
+            
+            const emailInput = document.getElementById('employee-email-input');
+            const resultsDiv = document.getElementById('schedule-results');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const email = emailInput.value.trim();
+            
+            console.log('DEBUG: Searching for email:', email);
+            
+            if (!email) {
+                displayError('Please enter an employee email');
+                return;
+            }
+            
+            // Show loading
+            loadingIndicator.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('employee_email', email);
+            
+            // Send request
+            fetch('/view_employee_schedule', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('DEBUG: Response status:', response.status);
+                console.log('DEBUG: Content-Type:', response.headers.get('Content-Type'));
+                
+                // Check if it's an error response (JSON)
+                if (response.status >= 400) {
+                    return response.text().then(text => {
+                        try {
+                            return { error: true, ...JSON.parse(text) };
+                        } catch (e) {
+                            return { error: true, message: 'Server error occurred' };
+                        }
+                    });
+                } else {
+                    // Success response - return HTML directly
+                    return response.text().then(html => ({ html: html }));
+                }
+            })
+            .then(data => {
+                loadingIndicator.style.display = 'none';
+                
+                if (data.error) {
+                    console.log('DEBUG: Error response:', data);
+                    displayError(data.message, data.available_emails);
+                } else if (data.html) {
+                    console.log('DEBUG: Success - displaying calendar');
+                    resultsDiv.innerHTML = data.html;
+                } else {
+                    console.log('DEBUG: Direct HTML response');
+                    resultsDiv.innerHTML = data;
+                }
+            })
+            .catch(error => {
+                loadingIndicator.style.display = 'none';
+                console.log('DEBUG: Network error:', error);
+                console.log('DEBUG: Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+                displayError(`Network error: ${error.message}. Please check the server and try again.`);
+            });
+        }
+        
+        // Also handle Enter key in input field
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailInput = document.getElementById('employee-email-input');
+            
+            if (emailInput) {
+                emailInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleSearch();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

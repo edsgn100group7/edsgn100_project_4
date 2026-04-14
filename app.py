@@ -1,15 +1,62 @@
-from flask import Flask, url_for, render_template, request, session, flash, jsonify
-from datetime import date, timedelta, datetime
+from flask import Flask, render_template, request, session, jsonify
+from datetime import date, datetime
 import calendar
-import json
 from utilities import generate_employees, generate_project_teams
+
+# Generate shared employee pool for both login list and project teams
+SHARED_EMPLOYEES = generate_employees(30)  # Generate 30 employees for both features
+
+# Generate sample events for employees
+def generate_sample_events():
+    events = {}
+    sample_event_titles = [
+        "Team Meeting", "Project Review", "Client Call", "Training Session",
+        "One-on-One", "Department Meeting", "Code Review", "Planning Session",
+        "Presentation", "Workshop", "Deadline", "Office Hours"
+    ]
+    
+    for employee in SHARED_EMPLOYEES:
+        employee_id = employee['employee_id']
+        events[employee_id] = {"name": employee['email'], "events": {}}
+        
+        # Add 3-5 random events for each employee
+        import random
+        from datetime import datetime, timedelta
+        
+        num_events = random.randint(3, 5)
+        for i in range(num_events):
+            # Random date within current month
+            today = datetime.now()
+            day = random.randint(1, 28)  # Keep it simple with days 1-28
+            hour = random.randint(9, 17)  # Business hours 9-17
+            
+            date_str = today.replace(day=day, hour=hour, minute=0).strftime("%Y-%m-%d")
+            
+            if date_str not in events[employee_id]["events"]:
+                events[employee_id]["events"][date_str] = []
+            
+            events[employee_id]["events"][date_str].append({
+                "title": random.choice(sample_event_titles),
+                "time": f"{hour}:00"
+            })
+    
+    return events
+
+# Initialize employee schedules with sample events
+print("DEBUG: Regenerating sample events for current employees...")
+employee_schedules = generate_sample_events()
+print(f"DEBUG: Generated schedules for {len(employee_schedules)} employees")
+
+# Print sample for debugging
+first_employee = list(employee_schedules.keys())[0]
+print(f"DEBUG: Sample employee {first_employee} has {len(employee_schedules[first_employee]['events'])} events")
 
 app = Flask(__name__)
 app.secret_key = "don't steal our key por favor"
 
 # Simple in-memory storage for demo purposes
 # In production, you'd use a database
-employee_schedules = {}
+# employee_schedules is now initialized above with sample events
 
 @app.route("/")
 def home():
@@ -154,8 +201,7 @@ def delete_event():
     
     return jsonify({"success": True})
 
-# Generate shared employee pool for both login list and project teams
-SHARED_EMPLOYEES = generate_employees(30)  # Generate 30 employees for both features
+# Employee data and schedules are already initialized at the top of the file
 
 @app.route("/employee_list")
 def employee_list():
@@ -227,6 +273,167 @@ def coschedule():
 @app.route("/Indschedule")
 def Indschedule():
     return render_template("Indschedule.html")
+
+@app.route("/view_employee_schedule", methods=["POST"])
+def view_employee_schedule():
+    print("DEBUG: view_employee_schedule route called")
+    employee_email = request.form.get("employee_email")
+    print(f"DEBUG: Received email: {employee_email}")
+    
+    if not employee_email:
+        print("DEBUG: No email provided")
+        return jsonify({"error": "Employee email is required"}), 400
+    
+    print(f"DEBUG: Total employee schedules: {len(employee_schedules)}")
+    print(f"DEBUG: Available employee IDs: {list(employee_schedules.keys())[:5]}")
+    
+    # Find employee in shared employees list
+    employee_id = employee_email.split('@')[0]
+    employee_name = None
+    
+    print(f"DEBUG: Looking for email: {employee_email}")
+    print(f"DEBUG: Available employees: {[emp['email'] for emp in SHARED_EMPLOYEES[:5]]}")  # Show first 5 for debugging
+    
+    for emp in SHARED_EMPLOYEES:
+        if emp['email'] == employee_email:
+            employee_name = f"{emp['first_name']} {emp['last_name']}"
+            print(f"DEBUG: Found employee: {employee_name}")
+            break
+    
+    if not employee_name:
+        print(f"DEBUG: Employee not found for email: {employee_email}")
+        error_response = {
+            "error": "Employee not found",
+            "message": f"The email {employee_email} does not exist in the employee list. Please check the email and try again.",
+            "available_emails": [emp['email'] for emp in SHARED_EMPLOYEES[:10]]  # Show first 10 as examples
+        }
+        print(f"DEBUG: Returning error response: {error_response}")
+        return jsonify(error_response), 404
+    
+    # Get employee's schedule
+    employee_schedule = employee_schedules.get(employee_id, {"name": employee_email, "events": {}})
+    print(f"DEBUG: Employee ID: {employee_id}")
+    print(f"DEBUG: Employee schedule keys: {list(employee_schedules.keys())[:5]}")
+    print(f"DEBUG: Employee found in schedules: {employee_id in employee_schedules}")
+    
+    if employee_id in employee_schedules:
+        print(f"DEBUG: Employee events: {employee_schedules[employee_id]['events']}")
+        print(f"DEBUG: Number of events: {len(employee_schedules[employee_id]['events'])}")
+    else:
+        print(f"DEBUG: Employee {employee_id} not found in schedules")
+    
+    # Get current month and year for calendar
+    today = date.today()
+    year = request.form.get("year", today.year)
+    month = request.form.get("month", today.month)
+    print(f"DEBUG: Year: {year}, Month: {month}")
+    
+    try:
+        year = int(year)
+        month = int(month)
+    except (ValueError, TypeError):
+        year = today.year
+        month = today.month
+    
+    # Generate calendar data
+    cal = calendar.monthcalendar(year, month)
+    month_name = calendar.month_name[month]
+    
+    # Build calendar days with events
+    calendar_days = []
+    print(f"DEBUG: Building calendar for {len(cal)} weeks")
+    
+    for week_idx, week in enumerate(cal):
+        week_days = []
+        print(f"DEBUG: Processing week {week_idx}")
+        
+        for day in week:
+            if day == 0:
+                week_days.append({"day": "", "events": []})
+            else:
+                date_str = f"{year}-{month:02d}-{day:02d}"
+                events = employee_schedule.get("events", {}).get(date_str, [])
+                
+                # Debug first few days with events
+                if events and len(calendar_days) == 0:
+                    print(f"DEBUG: Found events on {date_str}: {events}")
+                elif len(calendar_days) < 3:  # Debug first few days even if no events
+                    print(f"DEBUG: No events on {date_str}, checking available dates: {list(employee_schedule.get('events', {}).keys())[:3]}")
+                
+                week_days.append({"day": day, "date": date_str, "events": events})
+        calendar_days.append(week_days)
+    
+    print(f"DEBUG: Total calendar days generated: {len(calendar_days)}")
+    
+    # Count total events
+    total_events = 0
+    for week in calendar_days:
+        for day in week:
+            total_events += len(day.get("events", []))
+    print(f"DEBUG: Total events in calendar: {total_events}")
+    
+    # Generate simple HTML calendar directly
+    print("DEBUG: Generating simple HTML calendar")
+    
+    calendar_html = f"""
+    <div class="employee-schedule-view">
+        <div class="schedule-header">
+            <h3>{employee_name}'s Schedule</h3>
+            <p class="schedule-email">{employee_email}</p>
+            <div class="calendar-nav">
+                <button class="nav-btn" onclick="navigateMonth(-1)">Previous</button>
+                <span class="current-month">{month_name} {year}</span>
+                <button class="nav-btn" onclick="navigateMonth(1)">Next</button>
+            </div>
+        </div>
+        
+        <div class="calendar-grid">
+            <div class="calendar-weekdays">
+                <div class="weekday">Sun</div>
+                <div class="weekday">Mon</div>
+                <div class="weekday">Tue</div>
+                <div class="weekday">Wed</div>
+                <div class="weekday">Thu</div>
+                <div class="weekday">Fri</div>
+                <div class="weekday">Sat</div>
+            </div>
+    """
+    
+    # Add calendar weeks
+    for week in calendar_days:
+        calendar_html += '<div class="calendar-week">'
+        for day in week:
+            if day["day"]:
+                events_html = ""
+                for event in day["events"]:
+                    events_html += f'<div class="event-item"><span class="event-title">{event["title"]}</span>'
+                    if event.get("time"):
+                        events_html += f' <span class="event-time">{event["time"]}</span>'
+                    events_html += '</div>'
+                
+                calendar_html += f'''
+                <div class="calendar-day has-day" data-date="{day["date"]}">
+                    <div class="day-number">{day["day"]}</div>
+                    <div class="day-events">{events_html}</div>
+                </div>
+                '''
+            else:
+                calendar_html += '<div class="calendar-day"></div>'
+        calendar_html += '</div>'
+    
+    # Add summary
+    total_events = sum(len(day["events"]) for week in calendar_days for day in week)
+    calendar_html += f'''
+        </div>
+        <div class="schedule-summary">
+            <p class="summary-text">Total events this month: <span class="event-count">{total_events}</span></p>
+        </div>
+    </div>
+    '''
+    
+    print("DEBUG: Simple calendar HTML generated successfully")
+    print(f"DEBUG: Returning HTML with length: {len(calendar_html)}")
+    return calendar_html
 
 @app.route("/Employeeteams")
 def Employeeteams():
