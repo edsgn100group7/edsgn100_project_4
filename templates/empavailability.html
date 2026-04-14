@@ -53,26 +53,60 @@
         <!-- Right Panel: Infographic Placeholder -->
         <section class="visualizer-panel">
             <div class="infographic-placeholder">
-                <div class="schematic-header">
+                <div class="calendar-card" id="calendar-ui">
                     
-                </div>
-                <div class="abstract-grid">
-                    <!-- Placeholder visual elements -->
-                    <div class="node-line" style="top: 20%; left: 10%; width: 60%;"></div>
-                    <div class="node-line" style="top: 40%; left: 30%; width: 50%;"></div>
-                    <div class="node-line" style="top: 70%; left: 15%; width: 40%;"></div>
-                    <div class="dot" style="top: 20%; left: 10%;"></div>
-                    <div class="dot" style="top: 20%; left: 70%;"></div>
-                    <div class="dot" style="top: 40%; left: 30%;"></div>
-                    <div class="dot" style="top: 40%; left: 80%;"></div>
-                    <div class="dot" style="top: 70%; left: 15%;"></div>
-                    <div class="dot" style="top: 70%; left: 55%;"></div>
-                </div>
-                <div class="math-overlay">
+                    <header>
+                        <h1 style="margin:0">Off-Office Preferences</h1>
+                        <p class="week-info">Week {{ current_week }} of {{ current_year }} ({{ week_start }} - {{ week_end }})</p>
+                        <p class="limit-info">Rank your top <strong>{{ limit }}</strong> days (1 = Highest Priority)</p>
+                    </header>
+
+                    <div class="grid">
+                        {% for day in days %}
+                            {% set is_ranked = day in ranks %}
+                            {% set rank_num = ranks.index(day) + 1 if is_ranked else 0 %}
+                            
+                            <div class="day-box {{ 'is-ranked' if is_ranked }}"
+                                 hx-post="/toggle/{{ day }}"
+                                 hx-target="#calendar-ui"
+                                 hx-swap="outerHTML">
+                            
+                                {% if is_ranked %}
+                                    <div class="rank-badge">{{ rank_num }}</div>
+                                {% endif %}
+                                
+                                <span class="day-name">{{ day }}</span>
+                                <span class="status-label">
+                                    {{ 'Priority' if is_ranked else 'In Office' }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="summary">
+                        <strong>Current Selection:</strong>
+                        {% if not ranks %}
+                            <span style="color: #94a3b8">No preferences selected.</span>
+                        {% else %}
+                            <ol>
+                                {% for r in ranks %}
+                                    <li>{{ r }}</li>
+                                {% endfor %}
+                            </ol>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </section>
     </div>
+
+<style>
+    .week-info {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin: 5px 0;
+    }
+</style>
 
 </body>
 </html>

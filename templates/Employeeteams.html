@@ -27,24 +27,21 @@
  <br>Environment Scheduling Software</h2>
             </header>
 
-
             <nav class="button-stack">
-                   <button class="btn btn-info"
-        hx-get="/"
-        hx-target="body"
-        hx-swap="innerHTML">
-    <span class="btn-id">01</span>
-    <span class="btn-text">Homepage</span>
-</button>
-<button class="btn btn-info"
-        hx-get="/orgpage"
-        hx-target="body"
-        hx-swap="innerHTML">
-              <span class="btn-id">02</span>
-    <span class="btn-text">Organization Hub</span>
-</button>
-
-
+                <button class="btn btn-info"
+                    hx-get="/"
+                    hx-target="body"
+                    hx-swap="innerHTML">
+                    <span class="btn-id">01</span>
+                    <span class="btn-text">Homepage</span>
+                </button>
+                <button class="btn btn-info"
+                    hx-get="/orgpage"
+                    hx-target="body"
+                    hx-swap="innerHTML">
+                    <span class="btn-id">02</span>
+                    <span class="btn-text">Organization Hub</span>
+                </button>
             </nav>
 
             <footer class="version-info">
@@ -55,26 +52,224 @@
         <!-- Right Panel: Infographic Placeholder -->
         <section class="visualizer-panel">
             <div class="infographic-placeholder">
-                <div class="schematic-header">
-                    
-                </div>
-                <div class="abstract-grid">
-                    <!-- Placeholder visual elements -->
-                    <div class="node-line" style="top: 20%; left: 10%; width: 60%;"></div>
-                    <div class="node-line" style="top: 40%; left: 30%; width: 50%;"></div>
-                    <div class="node-line" style="top: 70%; left: 15%; width: 40%;"></div>
-                    <div class="dot" style="top: 20%; left: 10%;"></div>
-                    <div class="dot" style="top: 20%; left: 70%;"></div>
-                    <div class="dot" style="top: 40%; left: 30%;"></div>
-                    <div class="dot" style="top: 40%; left: 80%;"></div>
-                    <div class="dot" style="top: 70%; left: 15%;"></div>
-                    <div class="dot" style="top: 70%; left: 55%;"></div>
-                </div>
-                <div class="math-overlay">
+                <div class="teams-container">
+                    <div class="teams-header">
+                        <h2>Active Project Teams</h2>
+                        <p class="teams-count">{{ teams|length }} teams currently active</p>
+                    </div>
+
+                    <div class="teams-list">
+                        {% for team in teams %}
+                        <div class="team-card">
+                            <div class="team-header">
+                                <h3 class="team-name">{{ team.name }}</h3>
+                                <div class="team-meta">
+                                    <span class="team-status {{ team.status.lower().replace(' ', '-') }}">{{ team.status }}</span>
+                                    <span class="team-date">Since {{ team.created_date }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="team-members">
+                                <h4>Team Members ({{ team.members|length }})</h4>
+                                <div class="members-grid">
+                                    {% for member in team.members %}
+                                    <div class="member-card">
+                                        <div class="member-info">
+                                            <div class="member-name">{{ member.name }}</div>
+                                            <div class="member-role">{{ member.role }}</div>
+                                            <div class="member-department">{{ member.department }}</div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </section>
     </div>
 
+<style>
+        section.visualizer-panel {
+            flex: 16 !important;
+            max-width: none !important;
+        }
+        
+        .control-panel {
+            flex: 0 0 20% !important;
+        }
+        
+        .teams-container {
+            width: 200%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            margin: 0 auto;
+            transform: translateX(-25%);
+        }
+        
+        .teams-header {
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 16px;
+            margin-bottom: 40px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .teams-header h2 {
+            color: #fff;
+            margin: 0 0 8px 0;
+            font-size: 24px;
+        }
+        
+        .teams-count {
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+            font-size: 14px;
+        }
+        
+        .teams-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            max-height: 70vh;
+        }
+        
+        .team-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .team-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .team-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .team-name {
+            color: #fff;
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .team-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+        
+        .team-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .team-status.active {
+            background: rgba(76, 175, 80, 0.8);
+            color: #fff;
+        }
+        
+        .team-status.planning {
+            background: rgba(255, 193, 7, 0.8);
+            color: #000;
+        }
+        
+        .team-status.in-progress {
+            background: rgba(33, 150, 243, 0.8);
+            color: #fff;
+        }
+        
+        .team-status.review {
+            background: rgba(156, 39, 176, 0.8);
+            color: #fff;
+        }
+        
+        .team-date {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+        }
+        
+        .team-members h4 {
+            color: #fff;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .member-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            transition: background 0.2s;
+        }
+        
+        .member-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+        
+        .member-name {
+            color: #fff;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .member-role {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+        
+        .member-department {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 11px;
+        }
+        
+        /* Scrollbar styling */
+        .teams-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .teams-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .teams-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        
+        .teams-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
 </body>
 </html>
