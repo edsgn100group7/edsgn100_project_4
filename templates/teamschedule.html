@@ -56,29 +56,363 @@
             </footer>
         </section>
 
-        <!-- Right Panel: Infographic Placeholder -->
+        <!-- Right Panel: Teammate Display -->
         <section class="visualizer-panel">
-            <div class="infographic-placeholder">
-                <div class="schematic-header">
-                    
+            <div class="teammates-container">
+                <div class="teammates-header">
+                    <h2>My Teammates</h2>
+                    <p class="teammates-subtitle">{{ employee_email }}'s Team Members</p>
                 </div>
-                <div class="abstract-grid">
-                    <!-- Placeholder visual elements -->
-                    <div class="node-line" style="top: 20%; left: 10%; width: 60%;"></div>
-                    <div class="node-line" style="top: 40%; left: 30%; width: 50%;"></div>
-                    <div class="node-line" style="top: 70%; left: 15%; width: 40%;"></div>
-                    <div class="dot" style="top: 20%; left: 10%;"></div>
-                    <div class="dot" style="top: 20%; left: 70%;"></div>
-                    <div class="dot" style="top: 40%; left: 30%;"></div>
-                    <div class="dot" style="top: 40%; left: 80%;"></div>
-                    <div class="dot" style="top: 70%; left: 15%;"></div>
-                    <div class="dot" style="top: 70%; left: 55%;"></div>
+                
+                {% if teammates %}
+                <div class="teammates-grid">
+                    {% for teammate in teammates %}
+                    <div class="teammate-card">
+                        <div class="teammate-avatar">
+                            <div class="avatar-initials">
+                                {% set name_parts = teammate.name.split(' ') %}
+                                {% if name_parts|length >= 2 %}
+                                    {{ name_parts[0][0] }}{{ name_parts[1][0] }}
+                                {% else %}
+                                    {{ name_parts[0][0] }}{{ name_parts[0][1] if name_parts[0]|length > 1 else '' }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="teammate-info">
+                            <h3 class="teammate-name">{{ teammate.name }}</h3>
+                            <p class="teammate-role">{{ teammate.role }}</p>
+                            <p class="teammate-department">{{ teammate.department }}</p>
+                            <p class="teammate-email">{{ teammate.email }}</p>
+                        </div>
+                        <div class="teammate-actions">
+                            <button class="action-btn view-schedule-btn" 
+                                    onclick="viewTeammateSchedule('{{ teammate.email }}')">
+                                View Schedule
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                <div class="math-overlay">
+                {% else %}
+                <div class="no-teammates">
+                    <div class="no-teammates-icon">👥</div>
+                    <h3>No Teammates Found</h3>
+                    <p>You haven't been assigned to any project teams yet.</p>
+                </div>
+                {% endif %}
+                
+                <!-- Team Schedule Display -->
+                <div id="teammate-schedule-modal" class="schedule-modal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modal-teammate-name">Teammate Schedule</h3>
+                            <button class="close-btn" onclick="closeScheduleModal()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="teammate-schedule-content">
+                                <!-- Schedule content will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
     </div>
 
+    <style>
+        .teammates-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        
+        .teammates-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .teammates-header h2 {
+            color: #000;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .teammates-subtitle {
+            color: rgba(0, 0, 0, 0.7);
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .teammates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .teammate-card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .teammate-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .teammate-avatar {
+            flex-shrink: 0;
+        }
+        
+        .avatar-initials {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .teammate-info {
+            flex: 1;
+        }
+        
+        .teammate-name {
+            color: #000;
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .teammate-role {
+            color: rgba(0, 0, 0, 0.8);
+            margin: 0 0 3px 0;
+            font-size: 14px;
+        }
+        
+        .teammate-department {
+            color: rgba(0, 0, 0, 0.6);
+            margin: 0 0 3px 0;
+            font-size: 12px;
+        }
+        
+        .teammate-email {
+            color: rgba(0, 0, 0, 0.5);
+            margin: 0;
+            font-size: 11px;
+            word-break: break-all;
+        }
+        
+        .teammate-actions {
+            flex-shrink: 0;
+        }
+        
+        .action-btn {
+            background: rgba(76, 175, 80, 0.8);
+            border: 1px solid rgba(76, 175, 80, 0.9);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: rgba(76, 175, 80, 1);
+            transform: scale(1.05);
+        }
+        
+        .no-teammates {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .no-teammates-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .no-teammates h3 {
+            color: #000;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        
+        .no-teammates p {
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        /* Modal Styles */
+        .schedule-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-header h3 {
+            color: #000;
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: #000;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        /* Scrollbar styling */
+        .teammates-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .teammates-grid::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .teammates-grid::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        
+        .teammates-grid::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+
+    <script>
+        function viewTeammateSchedule(teammateEmail) {
+            const modal = document.getElementById('teammate-schedule-modal');
+            const modalTitle = document.getElementById('modal-teammate-name');
+            const scheduleContent = document.getElementById('teammate-schedule-content');
+            
+            // Show loading state
+            modalTitle.textContent = 'Loading Schedule...';
+            scheduleContent.innerHTML = '<div style="text-align: center; padding: 40px; color: #fff;">Loading...</div>';
+            modal.style.display = 'flex';
+            
+            // Fetch teammate's schedule
+            const formData = new FormData();
+            formData.append('employee_email', teammateEmail);
+            
+            fetch('/view_employee_schedule', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.status >= 400) {
+                    return response.text().then(text => {
+                        try {
+                            return { error: true, ...JSON.parse(text) };
+                        } catch (e) {
+                            return { error: true, message: 'Server error occurred' };
+                        }
+                    });
+                } else {
+                    return response.text().then(html => ({ html: html }));
+                }
+            })
+            .then(data => {
+                if (data.error) {
+                    modalTitle.textContent = 'Error';
+                    scheduleContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #fff;">
+                            <h3 style="color: #ff6b6b; margin-bottom: 10px;">Error Loading Schedule</h3>
+                            <p>${data.message}</p>
+                        </div>
+                    `;
+                } else if (data.html) {
+                    modalTitle.textContent = `${teammateEmail}'s Schedule`;
+                    scheduleContent.innerHTML = data.html;
+                }
+            })
+            .catch(error => {
+                modalTitle.textContent = 'Error';
+                scheduleContent.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #fff;">
+                        <h3 style="color: #ff6b6b; margin-bottom: 10px;">Network Error</h3>
+                        <p>Failed to load schedule. Please try again.</p>
+                    </div>
+                `;
+            });
+        }
+        
+        function closeScheduleModal() {
+            document.getElementById('teammate-schedule-modal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('teammate-schedule-modal');
+            if (event.target === modal) {
+                closeScheduleModal();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -6,6 +6,47 @@ from utilities import generate_employees, generate_project_teams
 # Generate shared employee pool for both login list and project teams
 SHARED_EMPLOYEES = generate_employees(30)  # Generate 30 employees for both features
 
+def generate_hybrid_work_schedule(year, month, total_employees=30):
+    """Generate realistic hybrid work schedule showing number of employees in office each day"""
+    import random
+    from calendar import monthcalendar, monthrange
+    
+    # Get the calendar for the month
+    cal = monthcalendar(year, month)
+    
+    # Initialize employee counts for each day
+    employee_counts = {}
+    
+    # Hybrid work patterns: most employees work 2-3 days in office per week
+    # Weekdays typically have 60-80% of employees in office
+    # Fridays usually lower (40-60%) 
+    # Weekends very low (10-20% for critical staff)
+    
+    for week in cal:
+        for day in week:
+            if day == 0:
+                continue  # Skip days from previous/next month
+                
+            day_of_week = (date(year, month, day).weekday() + 1) % 7  # 0=Sunday, 6=Saturday
+            
+            # Generate realistic employee counts based on day of week
+            if day_of_week == 0:  # Sunday
+                base_count = random.randint(3, 6)  # 10-20% of 30 employees
+            elif day_of_week == 6:  # Saturday
+                base_count = random.randint(3, 8)  # 10-25% of 30 employees
+            elif day_of_week == 5:  # Friday
+                base_count = random.randint(12, 18)  # 40-60% of 30 employees
+            else:  # Monday-Thursday
+                base_count = random.randint(18, 24)  # 60-80% of 30 employees
+            
+            # Add some variation for realism
+            variation = random.randint(-2, 2)
+            final_count = max(1, min(total_employees, base_count + variation))
+            
+            employee_counts[day] = final_count
+    
+    return employee_counts
+
 # Generate sample events for employees
 def generate_sample_events():
     events = {}
@@ -95,12 +136,45 @@ def orgpage():
 
 @app.route("/empschedule")
 def empschedule():
+    print(f"DEBUG empschedule: Session data: {dict(session)}")
+    
     # Check if employee is logged in
     if not session.get("logged_in"):
+        print("DEBUG empschedule: Not logged in, redirecting to employee.html")
         return render_template("employee.html")
     
     employee_id = session.get("employee_id")
     employee_email = session.get("employee_email")
+    
+    print(f"DEBUG empschedule: employee_id={employee_id}, employee_email={employee_email}")
+    
+    # If no employee_email, try to get from employee_id
+    if not employee_email and employee_id:
+        # Find employee by ID in shared employees
+        for emp in SHARED_EMPLOYEES:
+            if emp['employee_id'] == employee_id:
+                employee_email = emp['email']
+                session["employee_email"] = employee_email  # Update session
+                break
+    
+    # Find the logged-in employee in the shared employees list
+    logged_in_employee = None
+    for emp in SHARED_EMPLOYEES:
+        if emp['email'] == employee_email or emp['employee_id'] == employee_id:
+            logged_in_employee = emp
+            break
+    
+    if not logged_in_employee:
+        # Generate a random name for display
+        import random
+        random_names = ["Alex Johnson", "Sarah Williams", "Mike Chen", "Emily Davis", "James Brown", "Lisa Anderson", "David Miller", "Jennifer Wilson"]
+        random_name = random.choice(random_names)
+        employee_name = random_name
+        employee_email = f"{random_name.lower().replace(' ', '.')}@example.com"
+    else:
+        # Use the found employee's data
+        employee_email = logged_in_employee['email']
+        employee_name = f"{logged_in_employee['first_name']} {logged_in_employee['last_name']}"
     
     # Get month and year from query params or use current date
     year = int(request.args.get("year", date.today().year))
@@ -135,7 +209,7 @@ def empschedule():
                          calendar_weeks=calendar_weeks,
                          month_name=month_name,
                          year=year,
-                         employee_name=employee_email or "None",
+                         employee_name=employee_name,
                          employee_id=employee_id)
 
 @app.route("/add_event", methods=["POST"])
@@ -225,6 +299,10 @@ def employee_login():
     email = request.form.get("employee_email")
     employee_id = request.form.get("employee_id")
     
+    # Generate employee_id from email if not provided
+    if not employee_id and email:
+        employee_id = email.split("@")[0]
+    
     # Store employee info in session
     session["employee_email"] = email
     session["employee_id"] = employee_id
@@ -242,7 +320,81 @@ def employee_login():
 
 @app.route("/teamschedule")
 def teamschedule():
-    return render_template("teamschedule.html")
+    # Check if employee is logged in
+    if not session.get("logged_in"):
+        return render_template("employee.html")
+    
+    employee_id = session.get("employee_id")
+    employee_email = session.get("employee_email")
+    
+    # If no employee_email, try to get from employee_id
+    if not employee_email and employee_id:
+        # Find employee by ID in shared employees
+        for emp in SHARED_EMPLOYEES:
+            if emp['employee_id'] == employee_id:
+                employee_email = emp['email']
+                session["employee_email"] = employee_email  # Update session
+                break
+    
+    # Find the logged-in employee in the shared employees list
+    logged_in_employee = None
+    for emp in SHARED_EMPLOYEES:
+        if emp['email'] == employee_email or emp['employee_id'] == employee_id:
+            logged_in_employee = emp
+            break
+    
+    if not logged_in_employee:
+        # Generate a random name for display
+        import random
+        random_names = ["Alex Johnson", "Sarah Williams", "Mike Chen", "Emily Davis", "James Brown", "Lisa Anderson", "David Miller", "Jennifer Wilson"]
+        random_name = random.choice(random_names)
+        return render_template("teamschedule.html", 
+                             teammates=[], 
+                             employee_email=random_name,
+                             teams=[])
+    
+    # Generate project teams with a fixed seed for consistency
+    import random
+    random.seed(42)  # Fixed seed for consistent team generation
+    
+    project_teams = generate_project_teams(8, SHARED_EMPLOYEES)
+    
+    # Ensure the logged-in employee is in at least one team
+    employee_in_team = False
+    for team in project_teams:
+        for member in team['members']:
+            if member['email'] == logged_in_employee['email']:
+                employee_in_team = True
+                break
+        if employee_in_team:
+            break
+    
+    # If employee not in any team, add them to the first team
+    if not employee_in_team and project_teams:
+        # Convert logged-in employee to team member format
+        employee_member = {
+            'name': f"{logged_in_employee['first_name']} {logged_in_employee['last_name']}",
+            'email': logged_in_employee['email'],
+            'role': logged_in_employee['job_title'],
+            'department': logged_in_employee['department']
+        }
+        project_teams[0]['members'].append(employee_member)
+    
+    # Find all teammates of the logged-in employee
+    teammates = []
+    for team in project_teams:
+        for member in team['members']:
+            if member['email'] == logged_in_employee['email']:
+                # Add all other members of this team as teammates
+                for other_member in team['members']:
+                    if other_member['email'] != logged_in_employee['email'] and other_member not in teammates:
+                        teammates.append(other_member)
+                break
+    
+    return render_template("teamschedule.html", 
+                         teammates=teammates, 
+                         employee_email=logged_in_employee['email'],
+                         teams=project_teams)
 
 @app.route("/empavailability")
 def empavailability():
@@ -268,7 +420,22 @@ def empavailability():
 
 @app.route("/coschedule")
 def coschedule():
-    return render_template("coschedule.html")
+    # Get current month and year
+    today = date.today()
+    current_year = today.year
+    current_month = today.month
+    
+    # Generate hybrid work schedule for current month
+    employee_counts = generate_hybrid_work_schedule(current_year, current_month)
+    
+    print(f"DEBUG coschedule: Generated employee counts for {len(employee_counts)} days")
+    print(f"DEBUG coschedule: Sample counts: {dict(list(employee_counts.items())[:5])}")
+    
+    return render_template("coschedule.html", 
+                         employee_counts=employee_counts,
+                         current_year=current_year,
+                         current_month=current_month,
+                         current_month_zero_based=current_month - 1)
 
 @app.route("/Indschedule")
 def Indschedule():

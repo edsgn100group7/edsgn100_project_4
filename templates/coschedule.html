@@ -104,6 +104,17 @@
         </section>
     </div>
 
+    <!-- Hidden data elements for JavaScript -->
+    <script type="application/json" id="employee-counts-data">
+        {{ employee_counts|tojson|safe }}
+    </script>
+    <script type="application/json" id="backend-year-data">
+        {{ current_year|tojson|safe }}
+    </script>
+    <script type="application/json" id="backend-month-data">
+        {{ current_month_zero_based|tojson|safe }}
+    </script>
+
     <style>
         .calendar-container {
             background: rgba(0, 0, 0, 0.8);
@@ -218,12 +229,63 @@
         .calendar-day.weekend {
             color: rgba(255, 152, 0, 0.8);
         }
+        
+        .employee-count {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(76, 175, 80, 0.9);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 4px;
+            border-radius: 8px;
+            min-width: 16px;
+            text-align: center;
+            line-height: 1;
+        }
+        
+        .calendar-day.weekend .employee-count {
+            background: rgba(255, 152, 0, 0.8);
+        }
+        
+        .calendar-day.today .employee-count {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
     </style>
 
     <script>
         let currentDate = new Date();
         let currentMonth = currentDate.getMonth();
         let currentYear = currentDate.getFullYear();
+        
+        // Get employee count data from JSON script tags
+        let employeeCounts = {};
+        let backendYear = new Date().getFullYear();
+        let backendMonth = new Date().getMonth();
+        
+        try {
+            const employeeCountsElement = document.getElementById('employee-counts-data');
+            if (employeeCountsElement) {
+                employeeCounts = JSON.parse(employeeCountsElement.textContent);
+            }
+            
+            const backendYearElement = document.getElementById('backend-year-data');
+            if (backendYearElement) {
+                backendYear = JSON.parse(backendYearElement.textContent);
+            }
+            
+            const backendMonthElement = document.getElementById('backend-month-data');
+            if (backendMonthElement) {
+                backendMonth = JSON.parse(backendMonthElement.textContent);
+            }
+        } catch (e) {
+            console.error('Error parsing employee data:', e);
+        }
+        
+        console.log('Employee counts loaded:', employeeCounts);
+        console.log('Backend year:', backendYear, 'Backend month:', backendMonth);
 
         function generateCalendar(month, year) {
             const firstDay = new Date(year, month, 1);
@@ -263,7 +325,17 @@
                 if (isToday) classes += ' today';
                 if (isWeekend) classes += ' weekend';
                 
-                days += `<div class="${classes}">${i}</div>`;
+                // Get employee count for this day
+                let employeeCount = 0;
+                let countDisplay = '';
+                
+                // Only show counts for the current month from backend data
+                if (year === backendYear && month === backendMonth && employeeCounts[i]) {
+                    employeeCount = employeeCounts[i];
+                    countDisplay = `<div class="employee-count">${employeeCount}</div>`;
+                }
+                
+                days += `<div class="${classes}" style="position: relative;">${i}${countDisplay}</div>`;
             }
             
             // Next month days
