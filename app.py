@@ -6,6 +6,33 @@ from utilities import generate_employees, generate_project_teams
 # Generate shared employee pool for both login list and project teams
 SHARED_EMPLOYEES = generate_employees(30)  # Generate 30 employees for both features
 
+def get_logged_in_employee_assignments(employee_name, year, month):
+    """Generate assignments for logged-in employee on 3 random days in current week"""
+    import random
+    from datetime import datetime, date, timedelta
+    
+    # Get current date
+    today = date.today()
+    
+    # Find the start of the current week (Monday)
+    start_of_week = today - timedelta(days=today.weekday())
+    
+    # Generate 3 random days from this week (Monday-Friday)
+    weekdays = [start_of_week + timedelta(days=i) for i in range(5)]  # Monday to Friday
+    selected_days = random.sample(weekdays, min(3, len(weekdays)))
+    
+    assignments = {}
+    for day in selected_days:
+        # Create assignment for logged-in employee
+        assignments[day.strftime("%Y-%m-%d")] = [{
+            'name': employee_name,
+            'identifier': employee_name,
+            'role': 'Employee',
+            'email': ''
+        }]
+    
+    return assignments
+
 def generate_hybrid_work_schedule(year, month, total_employees=30):
     """Generate realistic hybrid work schedule showing number of employees in office each day"""
     import random
@@ -121,12 +148,16 @@ def employeepage():
         email = request.form.get("employee-email")
         password = request.form.get("employee-password")
         
+        print(f"DEBUG employeepage POST: Login attempt with email={email}")
+        
         # Store employee info in session
         session["employee_email"] = email
         session["logged_in"] = True
         
         # For demo purposes, create employee ID from email
         session["employee_id"] = email.split("@")[0] if email else "unknown"
+        
+        print(f"DEBUG employeepage POST: Session data after login: {dict(session)}")
         
     return render_template("employeepage.html", employee_email=session.get("employee_email"))
 
@@ -140,41 +171,33 @@ def empschedule():
     
     # Check if employee is logged in
     if not session.get("logged_in"):
-        print("DEBUG empschedule: Not logged in, redirecting to employee.html")
-        return render_template("employee.html")
-    
-    employee_id = session.get("employee_id")
-    employee_email = session.get("employee_email")
-    
-    print(f"DEBUG empschedule: employee_id={employee_id}, employee_email={employee_email}")
-    
-    # If no employee_email, try to get from employee_id
-    if not employee_email and employee_id:
-        # Find employee by ID in shared employees
-        for emp in SHARED_EMPLOYEES:
-            if emp['employee_id'] == employee_id:
-                employee_email = emp['email']
-                session["employee_email"] = employee_email  # Update session
-                break
-    
-    # Find the logged-in employee in the shared employees list
-    logged_in_employee = None
-    for emp in SHARED_EMPLOYEES:
-        if emp['email'] == employee_email or emp['employee_id'] == employee_id:
-            logged_in_employee = emp
-            break
-    
-    if not logged_in_employee:
-        # Generate a random name for display
-        import random
-        random_names = ["Alex Johnson", "Sarah Williams", "Mike Chen", "Emily Davis", "James Brown", "Lisa Anderson", "David Miller", "Jennifer Wilson"]
-        random_name = random.choice(random_names)
-        employee_name = random_name
-        employee_email = f"{random_name.lower().replace(' ', '.')}@example.com"
+        print("DEBUG empschedule: Not logged in, using default employee for testing")
+        # For testing purposes, use a default employee
+        employee_id = "test_employee"
+        employee_email = "test@example.com"
+        employee_name = "Test Employee"
     else:
-        # Use the found employee's data
-        employee_email = logged_in_employee['email']
-        employee_name = f"{logged_in_employee['first_name']} {logged_in_employee['last_name']}"
+        employee_id = session.get("employee_id")
+        employee_email = session.get("employee_email")
+        
+        # Find the logged-in employee in the shared employees list
+        logged_in_employee = None
+        for emp in SHARED_EMPLOYEES:
+            if emp['email'] == employee_email or emp['employee_id'] == employee_id:
+                logged_in_employee = emp
+                break
+        
+        if not logged_in_employee:
+            # Generate a random name for display
+            import random
+            random_names = ["Alex Johnson", "Sarah Williams", "Mike Chen", "Emily Davis", "James Brown", "Lisa Anderson", "David Miller", "Jennifer Wilson"]
+            random_name = random.choice(random_names)
+            employee_name = random_name
+            employee_email = f"{random_name.lower().replace(' ', '.')}@example.com"
+        else:
+            # Use the found employee's data
+            employee_email = logged_in_employee['email']
+            employee_name = f"{logged_in_employee['first_name']} {logged_in_employee['last_name']}"
     
     # Get month and year from query params or use current date
     year = int(request.args.get("year", date.today().year))
@@ -205,12 +228,23 @@ def empschedule():
                 week_data.append({"day": day, "date": date_str, "events": events})
         calendar_weeks.append(week_data)
     
+    # Generate employee assignments for logged-in employee on 3 random days in current week
+    employee_assignments = get_logged_in_employee_assignments(employee_name, year, month)
+    
+    print(f"DEBUG empschedule: Generated employee assignments for {len(employee_assignments)} days")
+    print(f"DEBUG empschedule: Assignment dates: {list(employee_assignments.keys())}")
+    for date_str, assignments in employee_assignments.items():
+        print(f"DEBUG empschedule: {date_str} has {len(assignments)} employees")
+        for assignment in assignments:
+            print(f"DEBUG empschedule: - {assignment['identifier']}")
+    
     return render_template("empschedule.html", 
                          calendar_weeks=calendar_weeks,
                          month_name=month_name,
                          year=year,
                          employee_name=employee_name,
-                         employee_id=employee_id)
+                         employee_id=employee_id,
+                         employee_assignments=employee_assignments)
 
 @app.route("/add_event", methods=["POST"])
 def add_event():
