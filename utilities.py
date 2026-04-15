@@ -6,11 +6,12 @@ fake = Faker()
 DEPARTMENTS = ['Tree', 'Soldier', 'With', 'Him', 'Roland', 'School', 'Present', 'Deep', 'Pass', 'Central', 'Responsibility', 'Benefit', 'Catch', 'Other', 'Order', 'Space', 'Weight', 'Heavy', 'Traditional', 'Recently', 'Especially', 'Gun', 'Case', 'Performance', 'All', 'Direction']
 
 PROJECT_NAMES = [
-    'Phoenix Initiative', 'Thunder Strike', 'Nova Development', 'Quantum Leap', 'Stellar Drive',
-    'Apex Project', 'Cosmic Voyage', 'Dragon Scale', 'Titan Shield', 'Vanguard Mission',
-    'Odyssey Quest', 'Horizon Explorer', 'Nebula Formation', 'Polaris System', 'Orion Belt',
-    'Comet Trail', 'Aurora Borealis', 'Meteor Shower', 'Galaxy Quest', 'Starlight Path',
-    'Moonshot Program', 'Solar Flare', 'Black Hole', 'Supernova', 'Asteroid Field'
+    'Engineering Lab Initiative', 'Research Development Project', 'STEM Education Program', 'Technical Training System',
+    'Curriculum Development Framework', 'Educational Technology Platform', 'Engineering Design Challenge', 'Learning Management System',
+    'Research Laboratory Project', 'Technical Documentation System', 'Educational Assessment Tool', 'Engineering Simulation Platform',
+    'Academic Research Initiative', 'Technical Skills Development', 'Educational Content Management', 'Engineering Analysis System',
+    'Learning Analytics Platform', 'Technical Infrastructure Project', 'Curriculum Design Framework', 'Educational Software Development',
+    'Engineering Education Portal', 'Research Data Management', 'Technical Training Module', 'Educational Assessment Framework'
 ]
 
 def generate_project_teams(num_teams=8, employees=None):
