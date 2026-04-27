@@ -40,12 +40,14 @@
     /* Cluster select in employee list */
     .cluster-select {
         font-family: var(--font-mono);
-        font-size: 0.72rem;
-        padding: 2px 4px;
+        font-size: 0.7rem;
+        padding: 3px 6px;
         border: 1px solid var(--border);
         border-radius: 2px;
-        background: var(--neutral);
+        background: white;
         cursor: pointer;
+        width: 80px;
+        flex-shrink: 0;
     }
 
     /* Carpool cluster card */
@@ -288,8 +290,11 @@
                 <div id="empList" style="max-height: 480px; overflow-y: auto;">
                     {% for emp in employees %}
                     <div style="padding: var(--spacing-sm) 0; border-bottom: 1px solid var(--border);">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; gap:6px;">
-                            <strong style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ emp.name }}</strong>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:3px; gap:8px;">
+                            <div style="flex:1; min-width:0;">
+                                <strong style="display:block; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ emp.name }}</strong>
+                                <span style="font-size:0.75rem; color:#999;">{{ emp.id }}</span>
+                            </div>
                             <select class="cluster-select"
                                     onchange="updateCluster('{{ emp.id }}', this.value)">
                                 {% for cl in geo_clusters %}

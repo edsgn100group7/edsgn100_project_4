@@ -439,5 +439,5 @@ def get_results():
 
 if __name__ == "__main__":
     print("\n  PROWESS - Hybrid Work Scheduling System")
-    print("  Running at http://localhost:8000\n")
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    print("  Running at http://localhost:8080\n")
+    app.run(host="0.0.0.0", port=8080, debug=True)
