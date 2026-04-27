@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee_name }} — Schedule{% endblock %}
+
+{% block extra_css %}
+<style>
+    .preferred-day.selected { background: #2c7da0 !important; color: white; border-color: #2c7da0 !important; }
+    .vacation-day.selected  { background: #d4622a !important; color: white; border-color: #d4622a !important; }
+
+    .cmp-table { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: 0.78rem; }
+    .cmp-table th, .cmp-table td { border: 1px solid var(--border); padding: 5px 7px; text-align: center; }
+    .cmp-table th { background: var(--neutral); font-weight: 700; }
+    .cmp-table td:first-child { font-weight: 700; background: var(--neutral); text-align: left; white-space: nowrap; }
+
+    /* Requested column states */
+    .req-pref { background: #d0e8f5; color: #1a4f6e; font-weight: 700; }
+    .req-vac  { background: #fde8dd; color: #8b3a1a; font-weight: 700; }
+    .req-any  { background: #f5f5f5; color: #aaa; }
+
+    /* Divider between sections */
+    .cmp-table td.section-divider, .cmp-table th.section-divider {
+        border-left: 3px solid var(--text);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+
+    <!-- Left: Preferences Input -->
+    <div>
+        <div class="card">
+            <div class="card-header"><h2>Your Preferences</h2></div>
+            <div class="card-content">
+                <p class="text-muted" style="margin-bottom: var(--spacing-md);">
+                    Select days you prefer to work in-office and any time off needed.
+                </p>
+                <form id="preferencesForm">
+                    <div class="form-group">
+                        <label>Preferred Out-of-Office Days</label>
+                        <div class="day-picker">
+                            {% for day in days_abbr %}
+                            <button type="button" class="day-btn preferred-day" data-day="{{ loop.index0 }}">
+                                <strong>{{ day }}</strong>
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="preferred_days" id="preferredDaysInput"
+                               value="{{ (preferences.preferred_days | default([])) | tojson }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Time Off</label>
+                        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: var(--spacing-sm);">Days you won't be available (applied to all weeks)</p>
+                        <div class="day-picker">
+                            {% for day in days_abbr %}
+                            <button type="button" class="day-btn vacation-day" data-day="{{ loop.index0 }}">
+                                <strong>{{ day }}</strong>
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="vacation_days" id="vacationDaysInput"
+                               value="{{ (preferences.vacation_days | default([])) | tojson }}">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="minDays">Min Days/Week</label>
+                            <input type="number" id="minDays" name="min_office_days" min="0" max="5"
+                                   value="{{ preferences.min_office_days if preferences else 2 }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxDays">Max Days/Week</label>
+                            <input type="number" id="maxDays" name="max_office_days" min="0" max="5"
+                                   value="{{ preferences.max_office_days if preferences else 4 }}">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border); font-size: 0.82rem; color: var(--text-light);">
+                        <strong style="color: var(--text);">Your area:</strong>
+                        <span style="font-family: var(--font-mono); font-weight: 700;">{{ geo_cluster }}</span>
+                        {% if carpool_info and carpool_info.partner_names %}
+                        &ensp;·&ensp;
+                        <strong style="color: var(--text);">Carpool partners:</strong>
+                        {{ carpool_info.partner_names | join(', ') }}
+                        {% endif %}
+                    </div>
+
+                    <div id="saveStatus" class="hidden" style="margin-bottom: var(--spacing-sm);"></div>
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">Save Preferences</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Requested vs. Scheduled comparison -->
+    <div>
+        {% if results and results.schedule %}
+        {% set prefs_pref = preferences.preferred_days if preferences else [] %}
+        {% set prefs_vac  = preferences.vacation_days  if preferences else [] %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Requested vs. Scheduled</h2>
+                <span class="text-muted" style="font-size: 0.9rem;">
+                    {{ results.scores.office_days_total }} office days
+                </span>
+            </div>
+            <div class="card-content">
+                <div style="overflow-x: auto;">
+                    <table class="cmp-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                {% for day in days_abbr %}
+                                <th {% if loop.first %}class="section-divider"{% endif %}>{{ day }}</th>
+                                {% endfor %}
+                                {% for day in days_abbr %}
+                                <th {% if loop.first %}class="section-divider"{% endif %}>{{ day }}</th>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <th></th>
+                                {# Requested header #}
+                                {% for day in days_abbr %}
+                                <th {% if loop.first %}class="section-divider"{% endif %}
+                                    colspan="1" style="font-size:0.7rem; color: #666; font-weight:600;">
+                                    {% if loop.first %}REQUESTED{% endif %}
+                                </th>
+                                {% endfor %}
+                                {# Scheduled header #}
+                                {% for day in days_abbr %}
+                                <th {% if loop.first %}class="section-divider"{% endif %}
+                                    colspan="1" style="font-size:0.7rem; color: #666; font-weight:600;">
+                                    {% if loop.first %}SCHEDULED{% endif %}
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for week in range(n_weeks) %}
+                            <tr>
+                                <td>W{{ week + 1 }}</td>
+                                {# Requested cells #}
+                                {% for d in range(5) %}
+                                    {% set idx = week * 5 + d %}
+                                    {% if idx in prefs_vac %}
+                                        <td class="req-vac {% if loop.first %}section-divider{% endif %}">VAC</td>
+                                    {% elif d in prefs_pref %}
+                                        <td class="req-pref {% if loop.first %}section-divider{% endif %}">WFH?</td>
+                                    {% else %}
+                                        <td class="req-any  {% if loop.first %}section-divider{% endif %}">—</td>
+                                    {% endif %}
+                                {% endfor %}
+                                {# Scheduled cells #}
+                                {% for d in range(5) %}
+                                    {% set idx = week * 5 + d %}
+                                    {% set status = results.schedule[idx] if idx < results.schedule|length else 'home' %}
+                                    <td class="schedule-cell cell-{% if status == 'office' %}in{% elif status == 'vacation' %}vacation{% else %}home{% endif %} {% if loop.first %}section-divider{% endif %}">
+                                        {% if status == 'office' %}IN{% elif status == 'vacation' %}VAC{% else %}WFH{% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Legend -->
+                <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm); margin-top: var(--spacing-md); font-size: 0.8rem; font-family: var(--font-mono);">
+                    <span><span style="background:#d0e8f5;color:#1a4f6e;padding:1px 6px;border-radius:2px;font-weight:700;">WFH?</span> Requested remote</span>
+                    <span><span style="background:#4a8c5c;color:white;padding:1px 6px;border-radius:2px;font-weight:700;">IN</span> In office</span>
+                    <span><span style="background:#2c7da0;color:white;padding:1px 6px;border-radius:2px;font-weight:700;">WFH</span> Remote</span>
+                    <span><span style="background:#d4622a;color:white;padding:1px 6px;border-radius:2px;font-weight:700;">VAC</span> Time off</span>
+                </div>
+
+                {% if pref_stats %}
+                <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+                    {% if pref_stats.remote_total > 0 %}
+                    <div class="score-row">
+                        <span class="score-label">Remote days honored</span>
+                        <span class="score-value">{{ pref_stats.remote_hit }} / {{ pref_stats.remote_total }}</span>
+                    </div>
+                    {% endif %}
+                    {% if pref_stats.office_total > 0 %}
+                    <div class="score-row">
+                        <span class="score-label">In-office days honored</span>
+                        <span class="score-value">{{ pref_stats.office_hit }} / {{ pref_stats.office_total }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="score-row" style="border-bottom:none;">
+                        <span class="score-label">Total days in office</span>
+                        <span class="score-value">{{ results.scores.office_days_total }}</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if carpool_info and carpool_info.partner_names %}
+                <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+                    <h4 style="margin:0 0 var(--spacing-sm);">Carpool · {{ carpool_info.cluster }}</h4>
+                    {% if carpool_info.pair_alignment %}
+                    {% for pair, days in carpool_info.pair_alignment.items() %}
+                    <div class="score-row">
+                        <span class="score-label" style="font-size:0.8rem;">{{ pair }}</span>
+                        <span class="score-value">{{ days }}/{{ carpool_info.n_days }} days</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted" style="font-size:0.82rem; margin:0;">
+                        Partners: {{ carpool_info.partner_names | join(', ') }}
+                        <br>Run the optimizer to see alignment stats.
+                    </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% else %}
+        <div class="card">
+            <h3>No Schedule Yet</h3>
+            <p class="text-muted">Your schedule will appear here once the administrator runs the optimization. Set your preferences on the left.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let preferredDays = JSON.parse(document.getElementById('preferredDaysInput').value || '[]');
+    let vacationDays  = JSON.parse(document.getElementById('vacationDaysInput').value  || '[]');
+
+    document.querySelectorAll('.preferred-day').forEach(btn => {
+        const day = parseInt(btn.dataset.day);
+        if (preferredDays.includes(day)) btn.classList.add('selected');
+        btn.addEventListener('click', function () {
+            btn.classList.toggle('selected');
+            if (btn.classList.contains('selected')) preferredDays.push(day);
+            else preferredDays = preferredDays.filter(d => d !== day);
+            document.getElementById('preferredDaysInput').value = JSON.stringify(preferredDays);
+        });
+    });
+
+    document.querySelectorAll('.vacation-day').forEach(btn => {
+        const day = parseInt(btn.dataset.day);
+        if (vacationDays.includes(day)) btn.classList.add('selected');
+        btn.addEventListener('click', function () {
+            btn.classList.toggle('selected');
+            if (btn.classList.contains('selected')) vacationDays.push(day);
+            else vacationDays = vacationDays.filter(d => d !== day);
+            document.getElementById('vacationDaysInput').value = JSON.stringify(vacationDays);
+        });
+    });
+
+    document.getElementById('preferencesForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const statusEl = document.getElementById('saveStatus');
+        const formData = {
+            preferred_days:  JSON.parse(document.getElementById('preferredDaysInput').value),
+            vacation_days:   JSON.parse(document.getElementById('vacationDaysInput').value),
+            min_office_days: parseInt(document.getElementById('minDays').value),
+            max_office_days: parseInt(document.getElementById('maxDays').value),
+        };
+        try {
+            const resp = await fetch('{{ url_for("save_preferences") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+            statusEl.className = 'alert ' + (resp.ok ? 'alert-success' : 'alert-error');
+            statusEl.textContent = resp.ok ? 'Preferences saved.' : 'Error saving.';
+            statusEl.style.display = 'block';
+            setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+        } catch { statusEl.className = 'alert alert-error'; statusEl.textContent = 'Network error.'; statusEl.style.display = 'block'; }
+    });
+});
+</script>
+{% endblock %}

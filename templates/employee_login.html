@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}PROWESS - Employee Login{% endblock %}
+
+{% block content %}
+<div class="max-w-sm" style="margin: var(--spacing-lg) auto;">
+    <div class="card">
+        <h2>Your Schedule Preferences</h2>
+        <p class="text-muted" style="margin-bottom: var(--spacing-lg);">Enter your name to get started. If this is your first time, we'll create your profile.</p>
+
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" placeholder="John Smith" required autofocus>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg btn-block">Continue</button>
+        </form>
+
+        <p class="text-muted text-center" style="margin-top: var(--spacing-lg); font-size: 0.85rem;">
+            <a href="{{ url_for('home') }}">← Back to Home</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

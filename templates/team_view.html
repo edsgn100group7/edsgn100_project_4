@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+
+{% block title %}Team Schedule View{% endblock %}
+
+{% block extra_css %}
+<style>
+    .matrix-wrap { overflow-x: auto; }
+
+    .matrix-table {
+        border-collapse: separate;
+        border-spacing: 0 3px;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+
+    .matrix-table th, .matrix-table td {
+        border: 1px solid var(--border);
+        padding: 5px 8px;
+        text-align: center;
+    }
+
+    /* Sticky name column */
+    .matrix-table td.name-col,
+    .matrix-table th.name-col {
+        text-align: left;
+        font-weight: 700;
+        background: var(--neutral);
+        min-width: 120px;
+        max-width: 160px;
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        border-right: 2px solid #bbb;
+    }
+
+    /* Week group header */
+    .matrix-table th.week-header {
+        background: #1a1a1a;
+        color: white;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        border-left: 2px solid #555;
+    }
+
+    /* Day sub-headers */
+    .matrix-table th.day-header {
+        background: var(--neutral);
+        font-weight: 700;
+    }
+    .matrix-table th.day-header.week-start {
+        border-left: 2px solid #bbb;
+    }
+
+    /* Schedule cells */
+    .matrix-table td.cell-in       { background: #4a8c5c; color: white; font-weight: 700; }
+    .matrix-table td.cell-home     { background: #2c7da0; color: white; font-weight: 700; }
+    .matrix-table td.cell-vacation { background: #d4622a; color: white; font-weight: 700; }
+    .matrix-table td.cell-none     { background: #f0f0f0; color: #bbb; }
+    .matrix-table td.week-start    { border-left: 2px solid #bbb; }
+
+    /* Mismatch: wanted remote but got put in office */
+    .matrix-table td.cell-mismatch {
+        outline: 3px solid #111;
+        outline-offset: -3px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Total column */
+    .matrix-table td.total-col,
+    .matrix-table th.total-col {
+        background: var(--neutral);
+        font-weight: 700;
+        border-left: 2px solid #bbb;
+    }
+
+    /* Group header rows */
+    .matrix-table tr.group-header-row td {
+        background: #2c2c2c;
+        color: white;
+        font-weight: 700;
+        text-align: left;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+        padding: 6px 10px;
+        border-color: #2c2c2c;
+    }
+
+    /* Daily count footer row */
+    .matrix-table tr.count-row td {
+        font-weight: 700;
+        background: #f0f0f0;
+        color: #555;
+    }
+    .matrix-table tr.count-row td.count-high { background: #4a8c5c; color: white; }
+    .matrix-table tr.count-row td.count-low  { background: #d4622a; color: white; }
+
+    /* Geo cluster badge */
+    .cluster-badge {
+        display: inline-block;
+        font-size: 0.6rem;
+        font-family: var(--font-mono);
+        font-weight: 700;
+        padding: 0 3px;
+        border-radius: 2px;
+        background: #e0e0e0;
+        color: #555;
+        vertical-align: middle;
+        margin-left: 3px;
+        letter-spacing: 0;
+    }
+
+    /* Carpool summary */
+    .carpool-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-md);
+    }
+    .carpool-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+    .carpool-card-header {
+        background: var(--neutral);
+        padding: 5px 10px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .carpool-card-body { padding: 6px 10px; font-size: 0.76rem; }
+    .carpool-bar-wrap { height: 5px; background: #e0e0e0; border-radius: 3px; margin: 4px 0; overflow: hidden; }
+    .carpool-bar      { height: 5px; background: #2c7da0; border-radius: 3px; }
+
+    /* Employee detail cards */
+    .emp-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: var(--spacing-md);
+    }
+    .emp-card { border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .emp-card-header {
+        background: var(--neutral);
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-weight: 700;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .emp-card-body { padding: var(--spacing-sm) var(--spacing-md); font-size: 0.82rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Team Schedule</h1>
+
+{% if not run %}
+<div class="alert alert-info">
+    <strong>No schedule yet.</strong> An administrator needs to run the optimizer first.
+</div>
+{% else %}
+<div class="alert alert-success" style="margin-bottom: var(--spacing-lg);">
+    <strong>{{ run.run_date }}</strong>&ensp;·&ensp;
+    Status: <strong>{{ run.status }}</strong>&ensp;·&ensp;
+    {% if run.feasible %}<span class="score-badge">Feasible</span>{% else %}<span class="score-badge" style="background:#d4622a;">Infeasible</span>{% endif %}
+</div>
+{% endif %}
+
+{% set has_results = team_data | selectattr('results') | list | length > 0 %}
+{% set n_with_results = team_data | selectattr('results') | list | length %}
+
+{% if has_results %}
+<!-- ── Matrix ─────────────────────────────────────────── -->
+<div class="card" style="padding: var(--spacing-md);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--spacing-md); flex-wrap:wrap; gap:var(--spacing-sm);">
+        <h2 style="margin:0;">Full Schedule Matrix</h2>
+        <div style="font-size:0.73rem; font-family:var(--font-mono); display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center;">
+            <span><span style="background:#4a8c5c;color:white;padding:1px 5px;border-radius:2px;font-weight:700;">IN</span> Office</span>
+            <span><span style="background:#2c7da0;color:white;padding:1px 5px;border-radius:2px;font-weight:700;">WFH</span> Remote</span>
+            <span><span style="background:#d4622a;color:white;padding:1px 5px;border-radius:2px;font-weight:700;">VAC</span> Time off</span>
+            <span style="border:3px solid #111;padding:0px 5px;border-radius:2px;font-weight:700;">IN</span> Preferred remote, got scheduled in
+        </div>
+    </div>
+
+    <div class="matrix-wrap">
+        <table class="matrix-table">
+            <thead>
+                <!-- Week group headers -->
+                <tr>
+                    <th class="name-col" rowspan="2">Name</th>
+                    {% for week in range(n_weeks) %}
+                    <th class="week-header" colspan="5">Week {{ week + 1 }}</th>
+                    {% endfor %}
+                    <th class="total-col" rowspan="2">Days IN</th>
+                </tr>
+                <!-- Day sub-headers -->
+                <tr>
+                    {% for week in range(n_weeks) %}
+                    {% for day in days_abbr %}
+                    <th class="day-header{% if loop.first %} week-start{% endif %}">{{ day }}</th>
+                    {% endfor %}
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for grp_entry in grouped %}
+
+                {# ── Group header with overlap stats ── #}
+                {% if grp_entry.group_name %}
+                {% set gs = group_summary[grp_entry.group_id] if grp_entry.group_id and grp_entry.group_id in group_summary else {} %}
+                <tr class="group-header-row">
+                    <td colspan="{{ n_weeks * 5 + 2 }}">
+                        {{ grp_entry.group_name }}
+                        {% if gs %}
+                        <span style="font-weight:400; opacity:0.75; margin-left:1.5rem; letter-spacing:0;">
+                            {{ gs.full_overlap_count }} full-team day{% if gs.full_overlap_count != 1 %}s{% endif %}
+                            &nbsp;·&nbsp; target {{ gs.target_per_week }}/wk
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+
+                {# ── Employee rows ── #}
+                {% for item in grp_entry.members %}
+                {% if item.results %}
+                {% set emp       = item.employee %}
+                {% set prefs     = item.preferences %}
+                {% set results   = item.results %}
+                {% set pref_days = prefs.preferred_days if prefs else [] %}
+                {% set vac_days  = prefs.vacation_days  if prefs else [] %}
+
+                <tr>
+                    <td class="name-col" title="{{ emp.name }} · {{ emp.geo_cluster }}">
+                        {{ emp.name.split(' ')[0] }} {{ emp.name.split(' ')[-1][:1] }}.
+                        <span class="cluster-badge">{{ emp.geo_cluster[:2] | upper }}</span>
+                    </td>
+
+                    {% for week in range(n_weeks) %}
+                    {% for d in range(5) %}
+                    {% set idx    = week * 5 + d %}
+                    {% set status = results.schedule[idx] if idx < results.schedule|length else 'home' %}
+                    {# desired: vacation if on leave, home if preferred remote, office otherwise #}
+                    {% set desired  = 'vacation' if idx in vac_days else ('home' if d in pref_days else 'office') %}
+                    {% set mismatch = (status != desired) %}
+                    <td class="cell-{% if status == 'office' %}in{% elif status == 'vacation' %}vacation{% else %}home{% endif %}{% if loop.first %} week-start{% endif %}{% if mismatch %} cell-mismatch{% endif %}">
+                        {% if status == 'office' %}IN{% elif status == 'vacation' %}VAC{% else %}WFH{% endif %}
+                    </td>
+                    {% endfor %}
+                    {% endfor %}
+
+                    <td class="total-col">{{ results.scores.office_days_total }}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+
+                {% endfor %}
+
+                {# ── Daily count footer ── #}
+                <tr class="count-row">
+                    <td class="name-col" style="color:#555;"># in office</td>
+                    {% for week in range(n_weeks) %}
+                    {% for d in range(5) %}
+                    {% set idx = week * 5 + d %}
+                    {% set daily_in = namespace(count=0) %}
+                    {% for item in team_data %}
+                    {% if item.results and idx < item.results.schedule|length %}
+                    {% if item.results.schedule[idx] == 'office' %}{% set daily_in.count = daily_in.count + 1 %}{% endif %}
+                    {% endif %}
+                    {% endfor %}
+                    <td class="{% if loop.first %}week-start {% endif %}{% if daily_in.count >= (n_with_results * 0.6)|int %}count-high{% elif daily_in.count <= (n_with_results * 0.25)|int %}count-low{% endif %}">
+                        {{ daily_in.count }}
+                    </td>
+                    {% endfor %}
+                    {% endfor %}
+                    <td class="total-col"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Individual detail cards ────────────────────────── -->
+<h2 style="margin-top: var(--spacing-lg); margin-bottom: var(--spacing-md);">Individual Preferences</h2>
+<div class="emp-detail-grid">
+    {% for grp_entry in grouped %}{% for item in grp_entry.members %}
+    {% set emp   = item.employee %}
+    {% set prefs = item.preferences %}
+    {% set res   = item.results %}
+    <div class="emp-card">
+        <div class="emp-card-header">
+            <span>{{ emp.name }}</span>
+            {% if res %}<span class="score-badge">{{ res.scores.office_days_total }} days IN</span>
+            {% else %}<span class="text-muted" style="font-size:0.8rem;">no schedule</span>{% endif %}
+        </div>
+        <div class="emp-card-body">
+            {% if prefs %}
+            <div style="margin-bottom:5px;"><span class="text-muted">Prefers remote:</span> <strong style="font-family:var(--font-mono);">{{ prefs.preferred_days | day_names }}</strong></div>
+            <div style="margin-bottom:5px;"><span class="text-muted">Time off:</span> <strong style="font-family:var(--font-mono);">{{ prefs.vacation_days | day_names }}</strong></div>
+            <div><span class="text-muted">Range:</span> <strong style="font-family:var(--font-mono);">{{ prefs.min_office_days }}–{{ prefs.max_office_days }}/wk</strong></div>
+            {% else %}<p class="text-muted">No preferences on file.</p>{% endif %}
+            {% if res and res.scores.employee %}
+            <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+                <span class="text-muted">Pref. match:</span>
+                <strong style="font-family:var(--font-mono);color:#4a8c5c;">{{ "%.2f"|format(res.scores.employee.score|default(0)) }}</strong>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}{% endfor %}
+</div>
+
+{% else %}
+<div class="card">
+    <h3>No schedules generated yet</h3>
+    <p class="text-muted">The matrix will appear here once the optimizer has been run.</p>
+    {% if team_data %}
+    <div class="emp-detail-grid" style="margin-top:var(--spacing-md);">
+        {% for item in team_data %}
+        <div class="emp-card">
+            <div class="emp-card-header">{{ item.employee.name }}</div>
+            <div class="emp-card-body">
+                {% if item.preferences %}
+                <div><span class="text-muted">Prefers remote:</span> <strong style="font-family:var(--font-mono);">{{ item.preferences.preferred_days | day_names }}</strong></div>
+                <div><span class="text-muted">Range:</span> <strong style="font-family:var(--font-mono);">{{ item.preferences.min_office_days }}–{{ item.preferences.max_office_days }}/wk</strong></div>
+                {% else %}<p class="text-muted">No preferences yet.</p>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if carpool_summary %}
+<h2 style="margin-top: var(--spacing-lg); margin-bottom: var(--spacing-md);">Carpool Clusters</h2>
+<div class="carpool-grid">
+    {% for cl, cs in carpool_summary.items() %}
+    <div class="carpool-card">
+        <div class="carpool-card-header">
+            <span>{{ cl }}</span>
+            {% if cs.solo %}
+            <span class="text-muted" style="font-weight:400; font-size:0.72rem;">solo</span>
+            {% else %}
+            <span style="font-family:var(--font-mono); color:#2c7da0;">
+                {{ "%.0f"|format(cs.pct_aligned * 100) }}% aligned
+            </span>
+            {% endif %}
+        </div>
+        <div class="carpool-card-body">
+            <div style="color:#555; margin-bottom:4px;">{{ cs.member_names | join(', ') }}</div>
+            {% if not cs.solo %}
+            <div class="carpool-bar-wrap">
+                <div class="carpool-bar" style="width:{{ (cs.pct_aligned * 100) | int }}%;"></div>
+            </div>
+            <div style="color:var(--text-light); font-size:0.72rem;">
+                avg {{ "%.1f"|format(cs.avg_alignment) }}/{{ cs.n_days }} days shared per pair
+            </div>
+            {% if cs.pair_alignment %}
+            <div style="margin-top:5px; border-top:1px solid #eee; padding-top:4px;">
+                {% for pair, days in cs.pair_alignment.items() %}
+                <div style="display:flex; justify-content:space-between; font-family:var(--font-mono); padding:1px 0; font-size:0.72rem;">
+                    <span style="color:#555; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">{{ pair }}</span>
+                    <span style="color:#2c7da0; font-weight:700; margin-left:6px;">{{ days }}/{{ cs.n_days }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card mt">
+    <h3>Summary</h3>
+    <div class="score-row"><span class="score-label">Team size</span><span class="score-value">{{ team_data | length }}</span></div>
+    {% if run %}
+    <div class="score-row"><span class="score-label">Last optimization</span><span class="score-value" style="font-size:0.85rem;">{{ run.run_date }}</span></div>
+    {% set nicety = run.result_json.scores.nicety if run.result_json and run.result_json.scores else {} %}
+    {% if nicety %}
+    <div class="score-row"><span class="score-label">Mon/Fri equity score</span><span class="score-value">{{ "%.1f"|format(nicety.mon_fri_equity | default(0)) }}</span></div>
+    <div class="score-row"><span class="score-label">Carpool score</span><span class="score-value">{{ "%.1f"|format(nicety.carpool | default(0)) }}</span></div>
+    {% endif %}
+    <div class="score-row" style="border-bottom:none;"><span class="score-label">Objective value</span><span class="score-value">{% if run.objective %}{{ "%.0f"|format(run.objective) }}{% else %}—{% endif %}</span></div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,681 +1,443 @@
-from flask import Flask, render_template, request, session, jsonify
-from datetime import date, datetime, timedelta
-import calendar
-from utilities import generate_employees, generate_project_teams
-
-# Generate shared employee pool for both login list and project teams
-SHARED_EMPLOYEES = generate_employees(30)  # Generate 30 employees for both features
-
-def get_logged_in_employee_assignments(employee_name, year, month):
-    """Generate assignments for logged-in employee on 3 random days in current week"""
-    import random
-    from datetime import datetime, date, timedelta
-    
-    # Get current date
-    today = date.today()
-    
-    # Find the start of the current week (Monday)
-    start_of_week = today - timedelta(days=today.weekday())
-    
-    # Generate 3 random days from this week (Monday-Friday)
-    weekdays = [start_of_week + timedelta(days=i) for i in range(5)]  # Monday to Friday
-    selected_days = random.sample(weekdays, min(3, len(weekdays)))
-    
-    assignments = {}
-    for day in selected_days:
-        # Create assignment for logged-in employee
-        assignments[day.strftime("%Y-%m-%d")] = [{
-            'name': employee_name,
-            'identifier': employee_name,
-            'role': 'Employee',
-            'email': ''
-        }]
-    
-    return assignments
-
-def generate_hybrid_work_schedule(year, month, total_employees=30):
-    """Generate realistic hybrid work schedule showing number of employees in office each day"""
-    import random
-    from calendar import monthcalendar, monthrange
-    
-    # Get the calendar for the month
-    cal = monthcalendar(year, month)
-    
-    # Initialize employee counts for each day
-    employee_counts = {}
-    
-    # Hybrid work patterns: most employees work 2-3 days in office per week
-    # Weekdays typically have 60-80% of employees in office
-    # Fridays usually lower (40-60%) 
-    # Weekends very low (10-20% for critical staff)
-    
-    for week in cal:
-        for day in week:
-            if day == 0:
-                continue  # Skip days from previous/next month
-                
-            day_of_week = (date(year, month, day).weekday() + 1) % 7  # 0=Sunday, 6=Saturday
-            
-            # Generate realistic employee counts based on day of week
-            if day_of_week == 0:  # Sunday
-                base_count = random.randint(3, 6)  # 10-20% of 30 employees
-            elif day_of_week == 6:  # Saturday
-                base_count = random.randint(3, 8)  # 10-25% of 30 employees
-            elif day_of_week == 5:  # Friday
-                base_count = random.randint(12, 18)  # 40-60% of 30 employees
-            else:  # Monday-Thursday
-                base_count = random.randint(18, 24)  # 60-80% of 30 employees
-            
-            # Add some variation for realism
-            variation = random.randint(-2, 2)
-            final_count = max(1, min(total_employees, base_count + variation))
-            
-            employee_counts[day] = final_count
-    
-    return employee_counts
-
-# Generate sample events for employees
-def generate_sample_events():
-    events = {}
-    sample_event_titles = [
-        "Team Meeting", "Project Review", "Client Call", "Training Session",
-        "One-on-One", "Department Meeting", "Code Review", "Planning Session",
-        "Presentation", "Workshop", "Deadline", "Office Hours"
-    ]
-    
-    for employee in SHARED_EMPLOYEES:
-        employee_id = employee['employee_id']
-        events[employee_id] = {"name": employee['email'], "events": {}}
-        
-        # Add 3-5 random events for each employee
-        import random
-        from datetime import datetime
-        
-        num_events = random.randint(3, 5)
-        for i in range(num_events):
-            # Random date within current month
-            today = datetime.now()
-            day = random.randint(1, 28)  # Keep it simple with days 1-28
-            hour = random.randint(9, 17)  # Business hours 9-17
-            
-            date_str = today.replace(day=day, hour=hour, minute=0).strftime("%Y-%m-%d")
-            
-            if date_str not in events[employee_id]["events"]:
-                events[employee_id]["events"][date_str] = []
-            
-            events[employee_id]["events"][date_str].append({
-                "title": random.choice(sample_event_titles),
-                "time": f"{hour}:00"
-            })
-    
-    return events
-
-# Initialize employee schedules with sample events
-print("DEBUG: Regenerating sample events for current employees...")
-employee_schedules = generate_sample_events()
-print(f"DEBUG: Generated schedules for {len(employee_schedules)} employees")
-
-# Print sample for debugging
-first_employee = list(employee_schedules.keys())[0]
-print(f"DEBUG: Sample employee {first_employee} has {len(employee_schedules[first_employee]['events'])} events")
+"""PROWESS — Hybrid Work Scheduling System."""
+from flask import Flask, render_template, request, session, jsonify, redirect, url_for
+from datetime import date, timedelta
+import json
+import traceback
+from models import init_db, reset_db, get_config, set_config, Employee, Preferences, SolverRun, Result
+from solver import DEFAULTS as SOLVER_DEFAULTS
+from solver import solve as run_solver, DAYS as SOLVER_DAYS
+from prowess_demo import generate as generate_prowess_data
 
 app = Flask(__name__)
-app.secret_key = "don't steal our key por favor"
+app.secret_key = "prowess-demo-key"
 
-# Simple in-memory storage for demo purposes
-# In production, you'd use a database
-# employee_schedules is now initialized above with sample events
+init_db()
+
+DAYS_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+
+@app.template_filter('day_names')
+def day_names_filter(indices):
+    """Convert list of day indices (0-4) to readable names."""
+    return ', '.join(DAYS_ABBR[i] for i in (indices or []) if 0 <= i < 5) or 'None'
+
+# ══════════════════════════════════════════════════════════════
+# Routes
+# ══════════════════════════════════════════════════════════════
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("home.html")
 
-@app.route("/org")
-def org():
-    return render_template("org.html")
-
-@app.route("/employee")
-def employee():
-    return render_template("employee.html")
-
-@app.route("/backend")
-def backend():
-    return render_template("backend.html")
-
-@app.route("/employeepage", methods=["GET", "POST"])
-def employeepage():
-    if request.method == "POST":
-        email = request.form.get("employee-email")
-        password = request.form.get("employee-password")
-        
-        print(f"DEBUG employeepage POST: Login attempt with email={email}")
-        
-        # Store employee info in session
-        session["employee_email"] = email
-        session["logged_in"] = True
-        
-        # For demo purposes, create employee ID from email
-        session["employee_id"] = email.split("@")[0] if email else "unknown"
-        
-        print(f"DEBUG employeepage POST: Session data after login: {dict(session)}")
-        
-    return render_template("employeepage.html", employee_email=session.get("employee_email"))
-
-@app.route("/orgpage")
-def orgpage():
-    return render_template("orgpage.html")
-
-@app.route("/empschedule")
-def empschedule():
-    print(f"DEBUG empschedule: Session data: {dict(session)}")
-    
-    # Check if employee is logged in
-    if not session.get("logged_in"):
-        print("DEBUG empschedule: Not logged in, using default employee for testing")
-        # For testing purposes, use a default employee
-        employee_id = "test_employee"
-        employee_email = "test@example.com"
-        employee_name = "Test Employee"
-    else:
-        employee_id = session.get("employee_id")
-        employee_email = session.get("employee_email")
-        
-        # Find the logged-in employee in the shared employees list
-        logged_in_employee = None
-        for emp in SHARED_EMPLOYEES:
-            if emp['email'] == employee_email or emp['employee_id'] == employee_id:
-                logged_in_employee = emp
-                break
-        
-        if not logged_in_employee:
-            # Generate a random name for display
-            import random
-            random_names = ["Alex Johnson", "Sarah Williams", "Mike Chen", "Emily Davis", "James Brown", "Lisa Anderson", "David Miller", "Jennifer Wilson"]
-            random_name = random.choice(random_names)
-            employee_name = random_name
-            employee_email = f"{random_name.lower().replace(' ', '.')}@example.com"
-        else:
-            # Use the found employee's data
-            employee_email = logged_in_employee['email']
-            employee_name = f"{logged_in_employee['first_name']} {logged_in_employee['last_name']}"
-    
-    # Get month and year from query params or use current date
-    year = int(request.args.get("year", date.today().year))
-    month = int(request.args.get("month", date.today().month))
-    
-    # Generate calendar data
-    cal = calendar.monthcalendar(year, month)
-    month_name = calendar.month_name[month]
-    
-    # Get employee's existing schedule or create empty one
-    if employee_id not in employee_schedules:
-        employee_schedules[employee_id] = {
-            "name": employee_email,
-            "events": {}
-        }
-    
-    # Format calendar for template
-    calendar_weeks = []
-    for week in cal:
-        week_data = []
-        for day in week:
-            if day == 0:
-                week_data.append({"day": "", "events": []})
-            else:
-                day_date = date(year, month, day)
-                date_str = day_date.strftime("%Y-%m-%d")
-                events = employee_schedules[employee_id]["events"].get(date_str, [])
-                week_data.append({"day": day, "date": date_str, "events": events})
-        calendar_weeks.append(week_data)
-    
-    # Generate employee assignments for logged-in employee on 3 random days in current week
-    employee_assignments = get_logged_in_employee_assignments(employee_name, year, month)
-    
-    print(f"DEBUG empschedule: Generated employee assignments for {len(employee_assignments)} days")
-    print(f"DEBUG empschedule: Assignment dates: {list(employee_assignments.keys())}")
-    for date_str, assignments in employee_assignments.items():
-        print(f"DEBUG empschedule: {date_str} has {len(assignments)} employees")
-        for assignment in assignments:
-            print(f"DEBUG empschedule: - {assignment['identifier']}")
-    
-    return render_template("empschedule.html", 
-                         calendar_weeks=calendar_weeks,
-                         month_name=month_name,
-                         year=year,
-                         employee_name=employee_name,
-                         employee_id=employee_id,
-                         employee_assignments=employee_assignments)
-
-@app.route("/add_event", methods=["POST"])
-def add_event():
-    if not session.get("logged_in"):
-        return jsonify({"error": "Not logged in"}), 401
-    
-    employee_id = session.get("employee_id")
-    event_date = request.form.get("date")
-    event_title = request.form.get("title")
-    event_time = request.form.get("time", "")
-    
-    if employee_id not in employee_schedules:
-        employee_schedules[employee_id] = {
-            "name": session.get("employee_email"),
-            "events": {}
-        }
-    
-    if event_date not in employee_schedules[employee_id]["events"]:
-        employee_schedules[employee_id]["events"][event_date] = []
-    
-    employee_schedules[employee_id]["events"][event_date].append({
-        "title": event_title,
-        "time": event_time
-    })
-    
-    return jsonify({"success": True})
-
-@app.route("/get_events/<date_str>")
-def get_events(date_str):
-    if not session.get("logged_in"):
-        return jsonify({"error": "Not logged in"}), 401
-    
-    employee_id = session.get("employee_id")
-    events = []
-    
-    if employee_id in employee_schedules:
-        events = employee_schedules[employee_id]["events"].get(date_str, [])
-    
-    return jsonify({"events": events})
-
-@app.route("/delete_event", methods=["POST"])
-def delete_event():
-    if not session.get("logged_in"):
-        return jsonify({"error": "Not logged in"}), 401
-    
-    employee_id = session.get("employee_id")
-    event_date = request.form.get("date")
-    event_title = request.form.get("title")
-    event_time = request.form.get("time", "")
-    
-    if employee_id in employee_schedules and event_date in employee_schedules[employee_id]["events"]:
-        events = employee_schedules[employee_id]["events"][event_date]
-        # Remove the event matching title and time
-        employee_schedules[employee_id]["events"][event_date] = [
-            event for event in events 
-            if not (event["title"] == event_title and event["time"] == event_time)
-        ]
-        
-        # Remove empty date entries
-        if not employee_schedules[employee_id]["events"][event_date]:
-            del employee_schedules[employee_id]["events"][event_date]
-    
-    return jsonify({"success": True})
-
-# Employee data and schedules are already initialized at the top of the file
-
-@app.route("/employee_list")
-def employee_list():
-    # Use shared employees for login list
-    sample_employees = SHARED_EMPLOYEES[:15]  # Show first 15 for login list
-    
-    # Print generated data for debugging
-    print("Generated Employees for Login List:")
-    for emp in sample_employees:
-        print(f"  Name: {emp['first_name']} {emp['last_name']}")
-        print(f"  Email: {emp['email']}")
-        print(f"  Job: {emp['job_title']}")
-        print(f"  Department: {emp['department']}")
-        print(f"  ID: {emp['employee_id']}")
-        print("---")
-    
-    return render_template("employee_list.html", employees=sample_employees)
-
-@app.route("/employee_login", methods=["POST"])
+@app.route("/employee", methods=["GET", "POST"])
 def employee_login():
-    email = request.form.get("employee_email")
-    employee_id = request.form.get("employee_id")
-    
-    # Generate employee_id from email if not provided
-    if not employee_id and email:
-        employee_id = email.split("@")[0]
-    
-    # Store employee info in session
-    session["employee_email"] = email
-    session["employee_id"] = employee_id
-    session["logged_in"] = True
-    
-    # Initialize empty schedule for this employee
-    if employee_id not in employee_schedules:
-        employee_schedules[employee_id] = {
-            "name": email,
-            "events": {}
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        if not name:
+            return render_template("employee_login.html", error="Please enter your name")
+
+        emp = Employee.get_by_name(name)
+        if not emp:
+            emp_id = f"emp_{len(Employee.list_all()) + 1:03d}"
+            Employee.create(emp_id, name)
+            emp = Employee.get_by_name(name)
+
+        session["employee_id"] = emp['id']
+        session["employee_name"] = emp['name']
+        return redirect(url_for("employee_dashboard"))
+
+    return render_template("employee_login.html")
+
+@app.route("/employee/dashboard")
+def employee_dashboard():
+    emp_id = session.get("employee_id")
+    emp_name = session.get("employee_name")
+
+    if not emp_id:
+        return redirect(url_for("employee_login"))
+
+    prefs   = Preferences.get_latest(emp_id)
+    results = Result.get_for_employee(emp_id)
+    run     = SolverRun.get_latest()
+
+    n_weeks = 2
+    if run:
+        n_weeks = run['result_json'].get('weeks', 2)
+
+    # Human-readable preference stats
+    pref_stats = None
+    if results and prefs:
+        pref_days = set(prefs.get('preferred_days', []))
+        vac_days  = set(prefs.get('vacation_days', []))
+        schedule  = results.get('schedule', [])
+        remote_hit = remote_total = office_hit = office_total = 0
+        for w in range(n_weeks):
+            for d in range(5):
+                idx = w * 5 + d
+                if idx in vac_days:
+                    continue
+                status = schedule[idx] if idx < len(schedule) else 'home'
+                if d in pref_days:
+                    remote_total += 1
+                    if status == 'home':
+                        remote_hit += 1
+                else:
+                    office_total += 1
+                    if status == 'office':
+                        office_hit += 1
+        pref_stats = {
+            'remote_hit': remote_hit, 'remote_total': remote_total,
+            'office_hit': office_hit, 'office_total': office_total,
         }
-    
-    return render_template("employeepage.html", employee_email=email)
 
+    # Carpool info for this employee
+    emp_record  = Employee.get_by_id(emp_id)
+    geo_cluster = emp_record.get('geo_cluster', 'Unknown') if emp_record else 'Unknown'
+    carpool_info = None
+    if run:
+        cs = run['result_json'].get('carpool_summary', {}).get(geo_cluster)
+        if cs and not cs.get('solo') and len(cs.get('member_names', [])) > 1:
+            partner_names = [n for n in cs['member_names'] if n != emp_name]
+            my_pairs = {k: v for k, v in cs.get('pair_alignment', {}).items()
+                        if emp_name in k}
+            carpool_info = {
+                'cluster':        geo_cluster,
+                'partner_names':  partner_names,
+                'pair_alignment': my_pairs,
+                'avg_alignment':  cs.get('avg_alignment', 0),
+                'n_days':         n_weeks * 5,
+            }
 
-@app.route("/teamschedule")
-def teamschedule():
-    # Check if employee is logged in
-    if not session.get("logged_in"):
-        return render_template("employee.html")
-    
-    employee_id = session.get("employee_id")
-    employee_email = session.get("employee_email")
-    
-    # If no employee_email, try to get from employee_id
-    if not employee_email and employee_id:
-        # Find employee by ID in shared employees
-        for emp in SHARED_EMPLOYEES:
-            if emp['employee_id'] == employee_id:
-                employee_email = emp['email']
-                session["employee_email"] = employee_email  # Update session
-                break
-    
-    # Find the logged-in employee in the shared employees list
-    logged_in_employee = None
-    for emp in SHARED_EMPLOYEES:
-        if emp['email'] == employee_email or emp['employee_id'] == employee_id:
-            logged_in_employee = emp
-            break
-    
-    if not logged_in_employee:
-        # Generate a random name for display
-        import random
-        random_names = ["Alex Johnson", "Sarah Williams", "Mike Chen", "Emily Davis", "James Brown", "Lisa Anderson", "David Miller", "Jennifer Wilson"]
-        random_name = random.choice(random_names)
-        return render_template("teamschedule.html", 
-                             teammates=[], 
-                             employee_email=random_name,
-                             teams=[])
-    
-    # Generate project teams with a fixed seed for consistency
-    import random
-    random.seed(42)  # Fixed seed for consistent team generation
-    
-    project_teams = generate_project_teams(8, SHARED_EMPLOYEES)
-    
-    # Ensure the logged-in employee is in at least one team
-    employee_in_team = False
-    for team in project_teams:
-        for member in team['members']:
-            if member['email'] == logged_in_employee['email']:
-                employee_in_team = True
-                break
-        if employee_in_team:
-            break
-    
-    # If employee not in any team, add them to the first team
-    if not employee_in_team and project_teams:
-        # Convert logged-in employee to team member format
-        employee_member = {
-            'name': f"{logged_in_employee['first_name']} {logged_in_employee['last_name']}",
-            'email': logged_in_employee['email'],
-            'role': logged_in_employee['job_title'],
-            'department': logged_in_employee['department']
-        }
-        project_teams[0]['members'].append(employee_member)
-    
-    # Find all teammates of the logged-in employee
-    teammates = []
-    for team in project_teams:
-        for member in team['members']:
-            if member['email'] == logged_in_employee['email']:
-                # Add all other members of this team as teammates
-                for other_member in team['members']:
-                    if other_member['email'] != logged_in_employee['email'] and other_member not in teammates:
-                        teammates.append(other_member)
-                break
-    
-    return render_template("teamschedule.html", 
-                         teammates=teammates, 
-                         employee_email=logged_in_employee['email'],
-                         teams=project_teams)
+    return render_template(
+        "employee_dashboard.html",
+        employee_id=emp_id,
+        employee_name=emp_name,
+        preferences=prefs,
+        results=results,
+        days_abbr=DAYS_ABBR,
+        n_weeks=n_weeks,
+        pref_stats=pref_stats,
+        geo_cluster=geo_cluster,
+        carpool_info=carpool_info,
+    )
 
-@app.route("/empavailability")
-def empavailability():
-    ranks = get_state()
-    
-    # Get current week information
-    today = date.today()
-    current_week = today.isocalendar()[1]  # ISO week number
-    current_year = today.year
-    
-    # Calculate week start and end dates
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=4)  # Monday to Friday
-    
-    return render_template("empavailability.html", 
-                         days=DAYS, 
-                         ranks=ranks, 
-                         limit=ALLOCATION_LIMIT,
-                         current_week=current_week,
-                         current_year=current_year,
-                         week_start=week_start.strftime("%B %d"),
-                         week_end=week_end.strftime("%B %d"))
+@app.route("/employee/logout")
+def employee_logout():
+    session.clear()
+    return redirect(url_for("home"))
 
-@app.route("/coschedule")
-def coschedule():
-    # Get current month and year
-    today = date.today()
-    current_year = today.year
-    current_month = today.month
-    
-    # Generate hybrid work schedule for current month
-    employee_counts = generate_hybrid_work_schedule(current_year, current_month)
-    
-    print(f"DEBUG coschedule: Generated employee counts for {len(employee_counts)} days")
-    print(f"DEBUG coschedule: Sample counts: {dict(list(employee_counts.items())[:5])}")
-    
-    return render_template("coschedule.html", 
-                         employee_counts=employee_counts,
-                         current_year=current_year,
-                         current_month=current_month,
-                         current_month_zero_based=current_month - 1)
+@app.route("/team")
+def team_view():
+    employees = Employee.list_all()
+    run = SolverRun.get_latest()
 
-@app.route("/Indschedule")
-def Indschedule():
-    return render_template("Indschedule.html")
+    team_data = []
+    for emp in employees:
+        prefs = Preferences.get_latest(emp['id'])
+        results = Result.get_for_employee(emp['id'])
+        team_data.append({
+            'employee': emp,
+            'preferences': prefs,
+            'results': results,
+        })
 
-@app.route("/view_employee_schedule", methods=["POST"])
-def view_employee_schedule():
-    print("DEBUG: view_employee_schedule route called")
-    employee_email = request.form.get("employee_email")
-    print(f"DEBUG: Received email: {employee_email}")
-    
-    if not employee_email:
-        print("DEBUG: No email provided")
-        return jsonify({"error": "Employee email is required"}), 400
-    
-    print(f"DEBUG: Total employee schedules: {len(employee_schedules)}")
-    print(f"DEBUG: Available employee IDs: {list(employee_schedules.keys())[:5]}")
-    
-    # Find employee in shared employees list
-    employee_id = employee_email.split('@')[0]
-    employee_name = None
-    
-    print(f"DEBUG: Looking for email: {employee_email}")
-    print(f"DEBUG: Available employees: {[emp['email'] for emp in SHARED_EMPLOYEES[:5]]}")  # Show first 5 for debugging
-    
-    for emp in SHARED_EMPLOYEES:
-        if emp['email'] == employee_email:
-            employee_name = f"{emp['first_name']} {emp['last_name']}"
-            print(f"DEBUG: Found employee: {employee_name}")
-            break
-    
-    if not employee_name:
-        print(f"DEBUG: Employee not found for email: {employee_email}")
-        error_response = {
-            "error": "Employee not found",
-            "message": f"The email {employee_email} does not exist in the employee list. Please check the email and try again.",
-            "available_emails": [emp['email'] for emp in SHARED_EMPLOYEES[:10]]  # Show first 10 as examples
-        }
-        print(f"DEBUG: Returning error response: {error_response}")
-        return jsonify(error_response), 404
-    
-    # Get employee's schedule
-    employee_schedule = employee_schedules.get(employee_id, {"name": employee_email, "events": {}})
-    print(f"DEBUG: Employee ID: {employee_id}")
-    print(f"DEBUG: Employee schedule keys: {list(employee_schedules.keys())[:5]}")
-    print(f"DEBUG: Employee found in schedules: {employee_id in employee_schedules}")
-    
-    if employee_id in employee_schedules:
-        print(f"DEBUG: Employee events: {employee_schedules[employee_id]['events']}")
-        print(f"DEBUG: Number of events: {len(employee_schedules[employee_id]['events'])}")
-    else:
-        print(f"DEBUG: Employee {employee_id} not found in schedules")
-    
-    # Get current month and year for calendar
-    today = date.today()
-    year = request.form.get("year", today.year)
-    month = request.form.get("month", today.month)
-    print(f"DEBUG: Year: {year}, Month: {month}")
-    
+    n_weeks = 2
+    groups = []
+    if run:
+        rj = run['result_json']
+        n_weeks = rj.get('weeks', 2)
+        groups = rj.get('input_groups', [])
+
+    # Build grouped structure — each employee assigned to first group they appear in
+    by_id = {item['employee']['id']: item for item in team_data}
+    seen  = set()
+    grouped = []
+    for grp in groups:
+        members = []
+        for emp_id in grp.get('members', []):
+            if emp_id not in seen and emp_id in by_id:
+                members.append(by_id[emp_id])
+                seen.add(emp_id)
+        if members:
+            grouped.append({
+                'group_id':   grp['id'],
+                'group_name': grp['name'],
+                'members':    members,
+            })
+
+    ungrouped = [item for item in team_data if item['employee']['id'] not in seen]
+    if ungrouped:
+        grouped.append({'group_id': None, 'group_name': 'Other', 'members': ungrouped})
+    if not grouped:
+        grouped = [{'group_id': None, 'group_name': None, 'members': team_data}]
+
+    # Group overlap summary from last run
+    group_summary = {}
+    if run:
+        group_summary = run['result_json'].get('group_overlap_summary', {})
+        group_scores  = run['result_json'].get('scores', {}).get('group', {})
+        for gid, gs in group_scores.items():
+            if gid in group_summary:
+                group_summary[gid]['score'] = gs.get('score', 0)
+
+    # Carpool summary from last run
+    carpool_summary = {}
+    if run:
+        carpool_summary = run['result_json'].get('carpool_summary', {})
+
+    return render_template(
+        "team_view.html",
+        grouped=grouped,
+        team_data=team_data,
+        group_summary=group_summary,
+        carpool_summary=carpool_summary,
+        run=run,
+        days_abbr=DAYS_ABBR,
+        n_weeks=n_weeks,
+    )
+
+@app.route("/admin")
+def admin_view():
+    employees = Employee.list_all()
+    run = SolverRun.get_latest()
+
+    # Start from config defaults, then overlay with last run if available
+    cfg_org = get_config('org', {})
+    org_data = {
+        'max_seats':           cfg_org.get('max_seats', 10),
+        'min_daily_in_person': cfg_org.get('min_daily_in_person', 4),
+        'weeks':               cfg_org.get('weeks', 2),
+        'priority_employees':  cfg_org.get('priority_employees', 0.30),
+        'priority_groups':     cfg_org.get('priority_groups', 0.55),
+        'priority_niceties':   cfg_org.get('priority_niceties', 0.15),
+    }
+
+    if run:
+        rj = run['result_json']
+        if rj.get('org'):
+            org_data.update({
+                'max_seats':           rj['org'].get('max_seats',           org_data['max_seats']),
+                'min_daily_in_person': rj['org'].get('min_daily_in_person', org_data['min_daily_in_person']),
+            })
+        org_data['weeks'] = rj.get('weeks', org_data['weeks'])
+
+    # Groups: prefer last run, then config (from reseed), then fallback split
+    groups_for_solver = []
+    if run:
+        groups_for_solver = run['result_json'].get('input_groups', [])
+    if not groups_for_solver:
+        groups_for_solver = get_config('groups', [])
+
+    emp_data = []
+    for emp in employees:
+        prefs = Preferences.get_latest(emp['id'])
+        emp_data.append({
+            'id': emp['id'],
+            'name': emp['name'],
+            'geo_cluster': emp.get('geo_cluster', 'Downtown'),
+            'preferred_days': prefs['preferred_days'] if prefs else [],
+            'vacation_days': prefs['vacation_days'] if prefs else [],
+            'min_office_days_per_week': prefs['min_office_days'] if prefs else 2,
+            'max_office_days_per_week': prefs['max_office_days'] if prefs else 4,
+        })
+
+    # Last-resort fallback: 2-group split
+    if not groups_for_solver and emp_data:
+        half = len(emp_data) // 2
+        groups_for_solver = [
+            {
+                'id': 'grp_00', 'name': 'Team A',
+                'members': [e['id'] for e in emp_data[:half]],
+                'min_overlap_days_per_week': 2, 'overlap_weight': 1.0, 'subgroups': [],
+            },
+            {
+                'id': 'grp_01', 'name': 'Team B',
+                'members': [e['id'] for e in emp_data[half:]],
+                'min_overlap_days_per_week': 2, 'overlap_weight': 1.0, 'subgroups': [],
+            },
+        ]
+
+    # Solver tuning params (from config or defaults)
+    solver_params = get_config('solver_params', dict(SOLVER_DEFAULTS))
+
+    # Build cluster groups from current employee data
+    cluster_groups: dict = {}
+    for emp in emp_data:
+        cl = emp.get('geo_cluster', 'Downtown')
+        cluster_groups.setdefault(cl, []).append(emp)
+
+    # Carpool summary from last run
+    carpool_summary = {}
+    if run:
+        carpool_summary = run['result_json'].get('carpool_summary', {})
+
+    return render_template(
+        "admin_view.html",
+        employees=emp_data,
+        org_data=org_data,
+        run=run,
+        days_abbr=DAYS_ABBR,
+        groups_for_solver=groups_for_solver,
+        solver_params=solver_params,
+        cluster_groups=cluster_groups,
+        carpool_summary=carpool_summary,
+        geo_clusters=['North', 'South', 'East', 'West', 'Downtown'],
+    )
+
+# ══════════════════════════════════════════════════════════════
+# API Endpoints
+# ══════════════════════════════════════════════════════════════
+
+@app.route("/api/preferences", methods=["POST"])
+def save_preferences():
+    emp_id = session.get("employee_id")
+    if not emp_id:
+        return jsonify({"error": "Not logged in"}), 401
+
+    data = request.get_json()
+    Preferences.save(
+        emp_id,
+        preferred_days=data.get('preferred_days', []),
+        vacation_days=data.get('vacation_days', []),
+        min_office=data.get('min_office_days', 2),
+        max_office=data.get('max_office_days', 4),
+    )
+    return jsonify({"success": True})
+
+@app.route("/api/solve", methods=["POST"])
+def solve():
     try:
-        year = int(year)
-        month = int(month)
-    except (ValueError, TypeError):
-        year = today.year
-        month = today.month
-    
-    # Generate calendar data
-    cal = calendar.monthcalendar(year, month)
-    month_name = calendar.month_name[month]
-    
-    # Build calendar days with events
-    calendar_days = []
-    print(f"DEBUG: Building calendar for {len(cal)} weeks")
-    
-    for week_idx, week in enumerate(cal):
-        week_days = []
-        print(f"DEBUG: Processing week {week_idx}")
-        
-        for day in week:
-            if day == 0:
-                week_days.append({"day": "", "events": []})
-            else:
-                date_str = f"{year}-{month:02d}-{day:02d}"
-                events = employee_schedule.get("events", {}).get(date_str, [])
-                
-                # Debug first few days with events
-                if events and len(calendar_days) == 0:
-                    print(f"DEBUG: Found events on {date_str}: {events}")
-                elif len(calendar_days) < 3:  # Debug first few days even if no events
-                    print(f"DEBUG: No events on {date_str}, checking available dates: {list(employee_schedule.get('events', {}).keys())[:3]}")
-                
-                week_days.append({"day": day, "date": date_str, "events": events})
-        calendar_days.append(week_days)
-    
-    print(f"DEBUG: Total calendar days generated: {len(calendar_days)}")
-    
-    # Count total events
-    total_events = 0
-    for week in calendar_days:
-        for day in week:
-            total_events += len(day.get("events", []))
-    print(f"DEBUG: Total events in calendar: {total_events}")
-    
-    # Generate simple HTML calendar directly
-    print("DEBUG: Generating simple HTML calendar")
-    
-    calendar_html = f"""
-    <div class="employee-schedule-view">
-        <div class="schedule-header">
-            <h3>{employee_name}'s Schedule</h3>
-            <p class="schedule-email">{employee_email}</p>
-            <div class="calendar-nav">
-                <button class="nav-btn" onclick="navigateMonth(-1)">Previous</button>
-                <span class="current-month">{month_name} {year}</span>
-                <button class="nav-btn" onclick="navigateMonth(1)">Next</button>
-            </div>
-        </div>
-        
-        <div class="calendar-grid">
-            <div class="calendar-weekdays">
-                <div class="weekday">Sun</div>
-                <div class="weekday">Mon</div>
-                <div class="weekday">Tue</div>
-                <div class="weekday">Wed</div>
-                <div class="weekday">Thu</div>
-                <div class="weekday">Fri</div>
-                <div class="weekday">Sat</div>
-            </div>
-    """
-    
-    # Add calendar weeks
-    for week in calendar_days:
-        calendar_html += '<div class="calendar-week">'
-        for day in week:
-            if day["day"]:
-                events_html = ""
-                for event in day["events"]:
-                    events_html += f'<div class="event-item"><span class="event-title">{event["title"]}</span>'
-                    if event.get("time"):
-                        events_html += f' <span class="event-time">{event["time"]}</span>'
-                    events_html += '</div>'
-                
-                calendar_html += f'''
-                <div class="calendar-day has-day" data-date="{day["date"]}">
-                    <div class="day-number">{day["day"]}</div>
-                    <div class="day-events">{events_html}</div>
-                </div>
-                '''
-            else:
-                calendar_html += '<div class="calendar-day"></div>'
-        calendar_html += '</div>'
-    
-    # Add summary
-    total_events = sum(len(day["events"]) for week in calendar_days for day in week)
-    calendar_html += f'''
-        </div>
-        <div class="schedule-summary">
-            <p class="summary-text">Total events this month: <span class="event-count">{total_events}</span></p>
-        </div>
-    </div>
-    '''
-    
-    print("DEBUG: Simple calendar HTML generated successfully")
-    print(f"DEBUG: Returning HTML with length: {len(calendar_html)}")
-    return calendar_html
+        data = request.get_json()
 
-@app.route("/Employeeteams")
-def Employeeteams():
-    # Generate project teams using shared employees
-    project_teams = generate_project_teams(8, SHARED_EMPLOYEES)
-    
-    return render_template("Employeeteams.html", teams=project_teams)
+        if not data.get('employees') or not data.get('org'):
+            return jsonify({"error": "Invalid data"}), 400
 
-ALLOCATION_LIMIT = 5
-DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+        result = run_solver(data)
 
-def get_state():
-    # Store as a list of day names in order of preference
-    # Example: ["Wednesday", "Monday"] means Wed is Rank 1, Mon is Rank 2
-    if 'ranks' not in session:
-        session['ranks'] = []
-    return session['ranks']
+        n_weeks = data['org'].get('weeks', 1)
+        result['day_labels']   = [f"W{w+1} {day}" for w in range(n_weeks) for day in SOLVER_DAYS]
+        result['weeks']        = n_weeks
+        result['org']          = data['org']
+        result['input_groups'] = data.get('groups', [])
 
-@app.route('/schedule')
-def index():
-    ranks = get_state()
-    return render_template('scheduler.html', days=DAYS, ranks=ranks, limit=ALLOCATION_LIMIT)
+        # Persist solver params so admin page restores them
+        if data.get('solver_params'):
+            set_config('solver_params', data['solver_params'])
 
-@app.route('/toggle/<day>', methods=['POST'])
-def toggle_day(day):
-    ranks = get_state()
-    
-    if day in ranks:
-        # If already ranked, remove it (and others shift up automatically)
-        ranks.remove(day)
-    else:
-        # If not ranked and we have room in the budget, add to end
-        if len(ranks) < ALLOCATION_LIMIT:
-            ranks.append(day)
-    
-    session.modified = True
-    
-    # We need to re-render the whole grid because changing one rank 
-    # (e.g. removing Rank 1) changes the numbers on all other ranked days.
-    return render_template('scheduler.html', days=DAYS, ranks=ranks, limit=ALLOCATION_LIMIT, partial=True)
+        run_id = SolverRun.create(
+            status=result['status'],
+            feasible=result['feasible'],
+            objective=result.get('objective'),
+            result_json=result,
+        )
 
+        if result.get('feasible'):
+            total_score = result.get('scores', {}).get('total', 0)
+            for emp_id, schedule_data in result.get('schedules', {}).items():
+                emp_scores = result.get('scores', {}).get('employee', {}).get(emp_id, {})
+                Result.save(
+                    run_id,
+                    emp_id,
+                    schedule=schedule_data['schedule'],
+                    scores={
+                        'name': schedule_data['name'],
+                        'office_days_total': schedule_data['office_days_total'],
+                        'employee': emp_scores,
+                        'total': total_score,
+                    },
+                )
+
+        result['run_id'] = run_id
+        return jsonify(result)
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(tb)
+        return jsonify({"error": str(e), "detail": tb}), 500
+
+@app.route("/api/reseed", methods=["POST"])
+def reseed():
+    """Wipe and regenerate demo employees + preferences (does not run solver)."""
+    try:
+        data = request.get_json() or {}
+        n_employees = max(4, min(50,  int(data.get('n_employees', 12))))
+        n_groups    = max(1, min(n_employees // 2, int(data.get('n_groups', 3))))
+        n_weeks     = max(1, min(4,   int(data.get('n_weeks', 2))))
+        seed        = data.get('seed', None)
+        if seed is not None:
+            seed = int(seed)
+        max_seats_override = data.get('max_seats', None)
+        if max_seats_override is not None:
+            max_seats_override = max(1, int(max_seats_override))
+
+        reset_db()
+        init_db()  # re-create tables if needed
+
+        demo_data = generate_prowess_data(
+            n_employees=n_employees,
+            n_groups=n_groups,
+            n_weeks=n_weeks,
+            seed=seed,
+            max_seats=max_seats_override,
+        )
+
+        for emp in demo_data['employees']:
+            Employee.create(emp['id'], emp['name'], emp['geo_cluster'])
+            Preferences.save(
+                emp['id'],
+                preferred_days=emp.get('preferred_days', []),
+                vacation_days=emp.get('vacation_days', []),
+                min_office=emp.get('min_office_days_per_week', 2),
+                max_office=emp.get('max_office_days_per_week', 4),
+            )
+
+        # Persist the generated groups so the solver picks them up next run
+        set_config('groups', demo_data.get('groups', []))
+        set_config('org', demo_data.get('org', {}))
+
+        session.clear()  # log out any stale employee session
+        return jsonify({
+            'success': True,
+            'n_employees': n_employees,
+            'names': [e['name'] for e in demo_data['employees']],
+        })
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(tb)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/employee/<emp_id>/cluster", methods=["POST"])
+def update_employee_cluster(emp_id):
+    data    = request.get_json() or {}
+    cluster = data.get('geo_cluster', 'Downtown')
+    ok      = Employee.update_cluster(emp_id, cluster)
+    return jsonify({"success": ok})
+
+@app.route("/api/results")
+def get_results():
+    run = SolverRun.get_latest()
+    if not run:
+        return jsonify({"error": "No results available"}), 404
+
+    all_results = Result.get_all_for_run(run['id'])
+    return jsonify({
+        'run': {
+            'id': run['id'],
+            'run_date': run['run_date'],
+            'status': run['status'],
+            'feasible': run['feasible'],
+            'objective': run['objective'],
+        },
+        'results': [
+            {
+                'employee_id': r['employee_id'],
+                'schedule': r['schedule'],
+                'scores': r['scores'],
+            }
+            for r in all_results
+        ],
+    })
 
 if __name__ == "__main__":
+    print("\n  PROWESS - Hybrid Work Scheduling System")
+    print("  Running at http://localhost:8000\n")
     app.run(host="0.0.0.0", port=8000, debug=True)
