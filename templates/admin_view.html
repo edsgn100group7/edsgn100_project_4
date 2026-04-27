@@ -1,0 +1,601 @@
+{% extends "base.html" %}
+
+{% block title %}Administration Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .config-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-sm) 0;
+        border-bottom: 1px solid var(--border);
+        gap: var(--spacing-md);
+    }
+    .config-row:last-child { border-bottom: none; }
+    .config-row label { font-weight: 600; margin: 0; flex: 1; }
+    .config-row .hint  { font-size: 0.75rem; color: var(--text-light); font-weight: 400; display: block; }
+    .config-row input[type="number"] {
+        width: 80px;
+        text-align: right;
+        font-family: var(--font-mono);
+        font-weight: 700;
+        padding: 4px 8px;
+    }
+    .config-row .unit {
+        font-size: 0.8rem;
+        color: var(--text-light);
+        min-width: 28px;
+    }
+    .pri-sum {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: var(--btn-radius);
+    }
+    .pri-sum.ok   { background: #d4edda; color: #2d5a3d; }
+    .pri-sum.bad  { background: #fde8dd; color: #8b3a1a; }
+
+    /* Cluster select in employee list */
+    .cluster-select {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        padding: 3px 6px;
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        background: white;
+        cursor: pointer;
+        width: 80px;
+        flex-shrink: 0;
+    }
+
+    /* Carpool cluster card */
+    .carpool-cluster {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: var(--spacing-sm);
+        overflow: hidden;
+    }
+    .carpool-cluster-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        background: var(--neutral);
+        border-bottom: 1px solid var(--border);
+        font-weight: 700;
+        font-size: 0.82rem;
+    }
+    .carpool-cluster-body {
+        padding: 6px 10px;
+        font-size: 0.78rem;
+    }
+    .carpool-bar-wrap {
+        height: 6px;
+        background: #e0e0e0;
+        border-radius: 3px;
+        margin-top: 4px;
+        overflow: hidden;
+    }
+    .carpool-bar {
+        height: 6px;
+        background: #2c7da0;
+        border-radius: 3px;
+    }
+    .pair-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 2px 0;
+        border-bottom: 1px solid #f0f0f0;
+        font-family: var(--font-mono);
+    }
+    .pair-row:last-child { border-bottom: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Administration Dashboard</h1>
+
+<div class="grid grid-2">
+    <!-- ══ LEFT COLUMN ══════════════════════════════════════════════ -->
+    <div>
+
+        <!-- Editable Configuration -->
+        <div class="card">
+            <div class="card-header"><h2>Configuration</h2></div>
+            <div class="card-content">
+                <div class="config-row">
+                    <label for="cfgMaxSeats">Max Office Seats
+                        <span class="hint">Hard capacity ceiling per day</span>
+                    </label>
+                    <input type="number" id="cfgMaxSeats" min="1" max="200" value="{{ org_data.max_seats }}">
+                    <span class="unit">seats</span>
+                </div>
+                <div class="config-row">
+                    <label for="cfgMinDaily">Min Daily In-Person
+                        <span class="hint">Minimum headcount required each day</span>
+                    </label>
+                    <input type="number" id="cfgMinDaily" min="0" max="100" value="{{ org_data.min_daily_in_person }}">
+                    <span class="unit">ppl</span>
+                </div>
+                <div class="config-row">
+                    <label for="cfgWeeks">Scheduling Weeks</label>
+                    <input type="number" id="cfgWeeks" min="1" max="4" value="{{ org_data.weeks }}">
+                    <span class="unit">wks</span>
+                </div>
+
+                <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--spacing-sm);">
+                        <h4 style="margin:0;">Optimization Priorities</h4>
+                        <span id="priSum" class="pri-sum ok">100%</span>
+                    </div>
+                    <div class="config-row">
+                        <label for="cfgPriEmp">Employee Preferences
+                            <span class="hint">Weight given to honoring individual remote/office preferences</span>
+                        </label>
+                        <input type="number" id="cfgPriEmp" min="0" max="100"
+                               value="{{ "%.0f"|format(org_data.priority_employees * 100) }}"
+                               oninput="updatePriSum()">
+                        <span class="unit">%</span>
+                    </div>
+                    <div class="config-row">
+                        <label for="cfgPriGrp">Team Overlap
+                            <span class="hint">Weight given to getting teams in office together</span>
+                        </label>
+                        <input type="number" id="cfgPriGrp" min="0" max="100"
+                               value="{{ "%.0f"|format(org_data.priority_groups * 100) }}"
+                               oninput="updatePriSum()">
+                        <span class="unit">%</span>
+                    </div>
+                    <div class="config-row">
+                        <label for="cfgPriNic">Niceties
+                            <span class="hint">Mon/Fri equity + carpool alignment bonuses</span>
+                        </label>
+                        <input type="number" id="cfgPriNic" min="0" max="100"
+                               value="{{ "%.0f"|format(org_data.priority_niceties * 100) }}"
+                               oninput="updatePriSum()">
+                        <span class="unit">%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solver Settings -->
+        <div class="card">
+            <div class="card-header"><h2>Solver Settings</h2></div>
+            <div class="card-content">
+                <div class="config-row">
+                    <label for="cfgMaxTime">Max Solve Time
+                        <span class="hint">Seconds the optimizer runs before returning best found</span>
+                    </label>
+                    <input type="number" id="cfgMaxTime" min="5" max="300" step="5"
+                           value="{{ solver_params.max_time_seconds | int }}">
+                    <span class="unit">s</span>
+                </div>
+                <div class="config-row">
+                    <label for="cfgWorkers">Solver Threads
+                        <span class="hint">Parallel search workers (more = faster, more CPU)</span>
+                    </label>
+                    <input type="number" id="cfgWorkers" min="1" max="16"
+                           value="{{ solver_params.num_workers }}">
+                    <span class="unit">thr</span>
+                </div>
+                <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+                    <h4 style="margin:0 0 var(--spacing-sm);">Objective Tuning</h4>
+                    <div class="config-row">
+                        <label for="cfgPairwise">Pairwise Bonus Factor
+                            <span class="hint">Extra credit when any two team members share a day (× Team Overlap priority)</span>
+                        </label>
+                        <input type="number" id="cfgPairwise" min="0" max="2" step="0.05"
+                               value="{{ '%.2f' | format(solver_params.pairwise_bonus_factor) }}">
+                        <span class="unit">×</span>
+                    </div>
+                    <div class="config-row">
+                        <label for="cfgOverlapPenalty">Overlap Penalty Multiplier
+                            <span class="hint">How hard groups are penalized per missed weekly overlap day</span>
+                        </label>
+                        <input type="number" id="cfgOverlapPenalty" min="0" max="10" step="0.5"
+                               value="{{ '%.1f' | format(solver_params.overlap_penalty_factor) }}">
+                        <span class="unit">×</span>
+                    </div>
+                    <div class="config-row">
+                        <label for="cfgSubgroup">Subgroup Bonus Factor
+                            <span class="hint">Bonus for sub-team all-in days within a group (× group weight)</span>
+                        </label>
+                        <input type="number" id="cfgSubgroup" min="0" max="2" step="0.05"
+                               value="{{ '%.2f' | format(solver_params.subgroup_bonus_factor) }}">
+                        <span class="unit">×</span>
+                    </div>
+                    <div class="config-row">
+                        <label for="cfgCarpool">Carpool Bonus Factor
+                            <span class="hint">Bonus when cluster-mates share office/remote status per day (× Niceties priority)</span>
+                        </label>
+                        <input type="number" id="cfgCarpool" min="0" max="2" step="0.05"
+                               value="{{ '%.2f' | format(solver_params.carpool_bonus_factor) }}">
+                        <span class="unit">×</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Optimization -->
+        <div class="card">
+            <div class="card-header"><h2>Optimization</h2></div>
+            <div class="card-content">
+                {% if run %}
+                <div class="alert alert-success" style="margin-bottom: var(--spacing-md);">
+                    <strong>Last run:</strong> {{ run.run_date }}<br>
+                    <strong>Status:</strong> {{ run.status }}&ensp;
+                    <strong>Feasible:</strong> {% if run.feasible %}Yes{% else %}No{% endif %}
+                    {% if run.objective %}<br><strong>Objective:</strong> {{ "%.0f"|format(run.objective) }}{% endif %}
+                </div>
+                {% endif %}
+                <button type="button" class="btn btn-primary btn-lg btn-block" onclick="runSolver()">
+                    Run Optimization
+                </button>
+                <div id="solverStatus" class="alert alert-info" style="margin-top:var(--spacing-md); display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Demo Data / Reseed -->
+        <div class="card">
+            <div class="card-header"><h2>Demo Data</h2></div>
+            <div class="card-content">
+                <p class="text-muted" style="margin-bottom: var(--spacing-md);">
+                    Regenerate the employee roster. Clears all employees, preferences, and solver results.
+                </p>
+                <div class="config-row">
+                    <label for="reseedN">Employees</label>
+                    <input type="number" id="reseedN" min="4" max="50" value="12">
+                    <span class="unit">ppl</span>
+                </div>
+                <div class="config-row">
+                    <label for="reseedGroups">Teams</label>
+                    <input type="number" id="reseedGroups" min="1" max="10" value="3">
+                    <span class="unit">grps</span>
+                </div>
+                <div class="config-row">
+                    <label for="reseedMaxSeats">Max Seats
+                        <span class="hint">Leave blank to auto-set (40–65 % of headcount)</span>
+                    </label>
+                    <input type="number" id="reseedMaxSeats" min="1" max="200" placeholder="auto">
+                    <span class="unit">seats</span>
+                </div>
+                <div class="config-row">
+                    <label for="reseedSeed">Random Seed
+                        <span class="hint">Fix to reproduce the same dataset</span>
+                    </label>
+                    <input type="number" id="reseedSeed" min="0" placeholder="random">
+                    <span class="unit"></span>
+                </div>
+                <button type="button" class="btn btn-lg btn-block" style="margin-top:var(--spacing-md);" onclick="reseedData()">
+                    Regenerate Demo Data
+                </button>
+                <div id="reseedStatus" class="alert" style="margin-top:var(--spacing-md); display:none;"></div>
+            </div>
+        </div>
+
+    </div><!-- /left -->
+
+    <!-- ══ RIGHT COLUMN ═════════════════════════════════════════════ -->
+    <div>
+
+        <!-- Employees (with editable cluster) -->
+        <div class="card">
+            <div class="card-header">
+                <h2 id="empHeader">Employees ({{ employees | length }})</h2>
+            </div>
+            <div class="card-content">
+                <div id="empList" style="max-height: 480px; overflow-y: auto;">
+                    {% for emp in employees %}
+                    <div style="padding: var(--spacing-sm) 0; border-bottom: 1px solid var(--border);">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:3px; gap:8px;">
+                            <div style="flex:1; min-width:0;">
+                                <strong style="display:block; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ emp.name }}</strong>
+                                <span style="font-size:0.75rem; color:#999;">{{ emp.id }}</span>
+                            </div>
+                            <select class="cluster-select"
+                                    onchange="updateCluster('{{ emp.id }}', this.value)">
+                                {% for cl in geo_clusters %}
+                                <option value="{{ cl }}" {% if emp.geo_cluster == cl %}selected{% endif %}>{{ cl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="font-size:0.82rem; color:var(--text-light);">
+                            <span>Remote pref: {{ emp.preferred_days | day_names }}</span>
+                            &ensp;·&ensp;
+                            <span>{{ emp.min_office_days_per_week }}–{{ emp.max_office_days_per_week }}/wk</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Editable group settings -->
+        {% if groups_for_solver %}
+        <div class="card">
+            <div class="card-header"><h2>Groups ({{ groups_for_solver | length }})</h2></div>
+            <div class="card-content">
+                <div style="display:grid; grid-template-columns: 1fr auto auto; gap:6px var(--spacing-sm); align-items:center; font-size:0.85rem;">
+                    <span style="font-weight:700; color:var(--text-light); font-size:0.75rem;">GROUP</span>
+                    <span style="font-weight:700; color:var(--text-light); font-size:0.75rem; text-align:center;">MIN OVERLAP/WK</span>
+                    <span style="font-weight:700; color:var(--text-light); font-size:0.75rem; text-align:center;">WEIGHT</span>
+                    {% for grp in groups_for_solver %}
+                    <div>
+                        <strong>{{ grp.name }}</strong>
+                        <span class="text-muted" style="font-size:0.78rem;"> · {{ grp.members | length }} members</span>
+                        {% if grp.subgroups %}
+                        <span class="text-muted" style="font-size:0.74rem;"> · {{ grp.subgroups | length }} subgroups</span>
+                        {% endif %}
+                    </div>
+                    <input type="number" class="grp-min-overlap" data-grp-id="{{ grp.id }}"
+                           min="0" max="5" step="1"
+                           value="{{ grp.min_overlap_days_per_week | default(1) }}"
+                           style="width:64px; text-align:center; font-family:var(--font-mono); font-weight:700; padding:4px 6px;"
+                           title="Minimum full-team days in office per week">
+                    <input type="number" class="grp-weight" data-grp-id="{{ grp.id }}"
+                           min="0.1" max="3" step="0.1"
+                           value="{{ '%.1f' | format(grp.overlap_weight | default(1.0)) }}"
+                           style="width:64px; text-align:center; font-family:var(--font-mono); font-weight:700; padding:4px 6px;"
+                           title="How strongly this team's overlap is prioritized relative to others">
+                    {% endfor %}
+                </div>
+                <p class="text-muted" style="font-size:0.78rem; margin-top:var(--spacing-sm);">
+                    Min overlap = minimum days/wk all team members must be in together.
+                    Weight = relative priority for this team's overlap vs. others.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Carpool / Geo Clusters -->
+        <div class="card">
+            <div class="card-header"><h2>Carpool Clusters</h2></div>
+            <div class="card-content">
+                <p class="text-muted" style="font-size:0.82rem; margin-bottom: var(--spacing-md);">
+                    Employees in the same area cluster earn a bonus when they share office/remote status — encouraging carpooling. Edit clusters in the employee list above.
+                </p>
+
+                {% for cl, members in cluster_groups.items() %}
+                {% set cs = carpool_summary.get(cl, {}) %}
+                <div class="carpool-cluster">
+                    <div class="carpool-cluster-header">
+                        <span>{{ cl }}
+                            <span class="text-muted" style="font-weight:400; font-size:0.75rem;">
+                                · {{ members | length }} member{% if members | length != 1 %}s{% endif %}
+                            </span>
+                        </span>
+                        {% if cs and not cs.solo %}
+                        <span style="font-family:var(--font-mono); font-size:0.78rem; color:#2c7da0;">
+                            {{ "%.0f"|format(cs.avg_alignment) }}/{{ cs.n_days }} days aligned
+                        </span>
+                        {% elif members | length < 2 %}
+                        <span class="text-muted" style="font-size:0.75rem;">solo — no bonus</span>
+                        {% endif %}
+                    </div>
+                    <div class="carpool-cluster-body">
+                        <div style="color:#444; margin-bottom:4px;">
+                            {{ members | map(attribute='name') | join(', ') }}
+                        </div>
+                        {% if cs and not cs.solo %}
+                        <div class="carpool-bar-wrap">
+                            <div class="carpool-bar" style="width:{{ (cs.pct_aligned * 100) | int }}%;"></div>
+                        </div>
+                        <div style="font-size:0.72rem; color:var(--text-light); margin-top:3px;">
+                            {{ "%.0f"|format(cs.pct_aligned * 100) }}% same-status alignment (last run)
+                        </div>
+                        {% if cs.pair_alignment %}
+                        <div style="margin-top:6px; border-top:1px solid #eee; padding-top:5px;">
+                            {% for pair, days in cs.pair_alignment.items() %}
+                            <div class="pair-row">
+                                <span style="color:#555;">{{ pair }}</span>
+                                <span style="color:#2c7da0; font-weight:700;">{{ days }}/{{ cs.n_days }} days</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if not cluster_groups %}
+                <p class="text-muted">No employees yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if run and run.feasible %}
+        <div class="card">
+            <div class="card-header"><h2>Results</h2></div>
+            <div class="card-content">
+                <p class="text-muted" style="margin-bottom:var(--spacing-md);">
+                    See the full schedule on the <a href="{{ url_for('team_view') }}">Team View</a> page.
+                </p>
+                <p>
+                    <strong>Quality:</strong>&ensp;
+                    {% if run.status == 'OPTIMAL' %}
+                    <span class="score-badge" style="background:#4a8c5c;">OPTIMAL</span> Best possible solution found.
+                    {% elif run.status == 'FEASIBLE' %}
+                    <span class="score-badge">FEASIBLE</span> Good solution found; may not be globally optimal.
+                    {% else %}
+                    <span class="score-badge" style="background:#d4622a;">INFEASIBLE</span> No valid solution. Relax constraints.
+                    {% endif %}
+                </p>
+                {% set nicety = run.result_json.scores.nicety if run.result_json and run.result_json.scores else {} %}
+                {% if nicety %}
+                <div style="margin-top:var(--spacing-sm); font-size:0.82rem;">
+                    <div class="score-row">
+                        <span class="score-label">Mon/Fri equity score</span>
+                        <span class="score-value">{{ "%.1f"|format(nicety.mon_fri_equity | default(0)) }}</span>
+                    </div>
+                    <div class="score-row" style="border-bottom:none;">
+                        <span class="score-label">Carpool alignment score</span>
+                        <span class="score-value">{{ "%.1f"|format(nicety.carpool | default(0)) }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div><!-- /right -->
+</div>
+
+<script>
+const employeeData    = {{ employees | tojson }};
+const groupsForSolver = {{ groups_for_solver | tojson }};
+const GEO_CLUSTERS    = {{ geo_clusters | tojson }};
+
+/* ── Group settings ─────────────────────────────────────────── */
+function getGroupsData() {
+    return groupsForSolver.map(grp => {
+        const minEl    = document.querySelector(`.grp-min-overlap[data-grp-id="${grp.id}"]`);
+        const weightEl = document.querySelector(`.grp-weight[data-grp-id="${grp.id}"]`);
+        return Object.assign({}, grp, {
+            min_overlap_days_per_week: minEl    ? (parseInt(minEl.value)       || 1)   : (grp.min_overlap_days_per_week || 1),
+            overlap_weight:            weightEl ? (parseFloat(weightEl.value)  || 1.0) : (grp.overlap_weight || 1.0),
+        });
+    });
+}
+
+/* ── Org config ─────────────────────────────────────────────── */
+function getOrgData() {
+    const emp = parseFloat(document.getElementById('cfgPriEmp').value) || 0;
+    const grp = parseFloat(document.getElementById('cfgPriGrp').value) || 0;
+    const nic = parseFloat(document.getElementById('cfgPriNic').value) || 0;
+    const total = emp + grp + nic || 1;
+    return {
+        max_seats:            parseInt(document.getElementById('cfgMaxSeats').value) || 10,
+        min_daily_in_person:  parseInt(document.getElementById('cfgMinDaily').value) || 4,
+        weeks:                parseInt(document.getElementById('cfgWeeks').value)    || 2,
+        priority_employees:   emp / total,
+        priority_groups:      grp / total,
+        priority_niceties:    nic / total,
+    };
+}
+
+/* ── Solver params ──────────────────────────────────────────── */
+function getSolverParams() {
+    return {
+        max_time_seconds:     parseFloat(document.getElementById('cfgMaxTime').value)       || 30,
+        num_workers:          parseInt(document.getElementById('cfgWorkers').value)          || 4,
+        pairwise_bonus_factor:  parseFloat(document.getElementById('cfgPairwise').value)    || 0.3,
+        overlap_penalty_factor: parseFloat(document.getElementById('cfgOverlapPenalty').value) || 2.0,
+        subgroup_bonus_factor:  parseFloat(document.getElementById('cfgSubgroup').value)    || 0.5,
+        carpool_bonus_factor:   parseFloat(document.getElementById('cfgCarpool').value)     || 0.4,
+    };
+}
+
+/* ── Priority sum badge ─────────────────────────────────────── */
+function updatePriSum() {
+    const emp   = parseFloat(document.getElementById('cfgPriEmp').value) || 0;
+    const grp   = parseFloat(document.getElementById('cfgPriGrp').value) || 0;
+    const nic   = parseFloat(document.getElementById('cfgPriNic').value) || 0;
+    const total = emp + grp + nic;
+    const el    = document.getElementById('priSum');
+    el.textContent = total + '%';
+    el.className   = 'pri-sum ' + (total === 100 ? 'ok' : 'bad');
+}
+
+/* ── Cluster update ─────────────────────────────────────────── */
+async function updateCluster(empId, newCluster) {
+    await fetch(`/api/employee/${empId}/cluster`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ geo_cluster: newCluster }),
+    });
+    const emp = employeeData.find(e => e.id === empId);
+    if (emp) emp.geo_cluster = newCluster;
+}
+
+/* ── Run solver ─────────────────────────────────────────────── */
+async function runSolver() {
+    const statusEl = document.getElementById('solverStatus');
+    const btn = event.target;
+    btn.disabled    = true;
+    btn.textContent = 'Running…';
+    statusEl.className   = 'alert alert-info';
+    statusEl.textContent = 'Optimization in progress…';
+    statusEl.style.display = 'block';
+
+    try {
+        const resp = await fetch('{{ url_for("solve") }}', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                org:           getOrgData(),
+                employees:     employeeData,
+                groups:        getGroupsData(),
+                solver_params: getSolverParams(),
+            }),
+        });
+        const result = await resp.json();
+        if (result.error) {
+            statusEl.className   = 'alert alert-error';
+            statusEl.textContent = 'Error: ' + result.error;
+        } else if (result.feasible) {
+            statusEl.className   = 'alert alert-success';
+            statusEl.textContent = 'Done — ' + result.status + '. Objective: ' + result.objective.toFixed(0);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            statusEl.className   = 'alert alert-error';
+            statusEl.textContent = 'No feasible solution. Try relaxing constraints (lower min daily, increase seats, or widen employee day ranges).';
+        }
+    } catch (err) {
+        statusEl.className   = 'alert alert-error';
+        statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Run Optimization';
+    }
+}
+
+/* ── Reseed demo data ───────────────────────────────────────── */
+async function reseedData() {
+    const statusEl  = document.getElementById('reseedStatus');
+    const btn       = event.target;
+    const seedVal   = document.getElementById('reseedSeed').value;
+    const seatsVal  = document.getElementById('reseedMaxSeats').value;
+
+    btn.disabled    = true;
+    btn.textContent = 'Regenerating…';
+    statusEl.className   = 'alert alert-info';
+    statusEl.textContent = 'Generating new demo data…';
+    statusEl.style.display = 'block';
+
+    try {
+        const payload = {
+            n_employees: parseInt(document.getElementById('reseedN').value)      || 12,
+            n_groups:    parseInt(document.getElementById('reseedGroups').value)  || 3,
+            n_weeks:     parseInt(document.getElementById('cfgWeeks').value)      || 2,
+        };
+        if (seedVal  !== '') payload.seed      = parseInt(seedVal);
+        if (seatsVal !== '') payload.max_seats = parseInt(seatsVal);
+
+        const resp   = await fetch('{{ url_for("reseed") }}', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(payload),
+        });
+        const result = await resp.json();
+        if (result.error) {
+            statusEl.className   = 'alert alert-error';
+            statusEl.textContent = 'Error: ' + result.error;
+        } else {
+            statusEl.className   = 'alert alert-success';
+            statusEl.textContent = 'Generated ' + result.n_employees + ' employees. Reloading…';
+            setTimeout(() => location.reload(), 1500);
+        }
+    } catch (err) {
+        statusEl.className   = 'alert alert-error';
+        statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Regenerate Demo Data';
+    }
+}
+</script>
+{% endblock %}
