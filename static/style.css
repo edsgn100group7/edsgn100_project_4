@@ -3,10 +3,10 @@
    ══════════════════════════════════════════════════════════════ */
 
 :root {
-    --bg: #FFFBF5;
-    --text: #1a1a1a;
-    --text-light: #666;
-    --border: #ddd;
+    --bg: #ffffff;
+    --text: #000000;
+    --text-light: #555;
+    --border: #ccc;
     --info: #ADD8E6;
     --warning: #FF997A;
     --success: #B6DB98;
@@ -43,7 +43,7 @@ html, body {
 }
 
 a {
-    color: #2c7da0;
+    color: #ADD8E6;
     text-decoration: none;
 }
 
@@ -172,36 +172,36 @@ h3 {
 }
 
 .btn-primary {
-    background: #4a8c5c;
-    color: white;
-    border: 2px solid #4a8c5c;
+    background: #B6DB98;
+    color: #000000;
+    border: 2px solid #B6DB98;
 }
 
 .btn-primary:hover {
-    background: #3a7048;
-    border-color: #3a7048;
+    background: #a0c880;
+    border-color: #a0c880;
 }
 
 .btn-secondary {
-    background: #2c7da0;
-    color: white;
-    border: 2px solid #2c7da0;
+    background: #ADD8E6;
+    color: #000000;
+    border: 2px solid #ADD8E6;
 }
 
 .btn-secondary:hover {
-    background: #226080;
-    border-color: #226080;
+    background: #95c9d4;
+    border-color: #95c9d4;
 }
 
 .btn-warning {
-    background: #d4622a;
-    color: white;
-    border: 2px solid #d4622a;
+    background: #FF997A;
+    color: #000000;
+    border: 2px solid #FF997A;
 }
 
 .btn-warning:hover {
-    background: #b8501e;
-    border-color: #b8501e;
+    background: #e67d5f;
+    border-color: #e67d5f;
 }
 
 .btn-lg {
@@ -370,14 +370,14 @@ textarea {
 }
 
 .day-btn:hover {
-    border-color: #2c7da0;
+    border-color: #ADD8E6;
     background: #f0f7fc;
 }
 
 .day-btn.selected {
-    background: #4a8c5c;
-    color: white;
-    border-color: #4a8c5c;
+    background: #B6DB98;
+    color: #000000;
+    border-color: #B6DB98;
 }
 
 .day-label {
@@ -429,18 +429,18 @@ textarea {
 }
 
 .cell-in {
-    background: #4a8c5c;
-    color: white;
+    background: #B6DB98;
+    color: #000000;
 }
 
 .cell-home {
-    background: #2c7da0;
-    color: white;
+    background: #ADD8E6;
+    color: #000000;
 }
 
 .cell-vacation {
-    background: #d4622a;
-    color: white;
+    background: #FF997A;
+    color: #000000;
 }
 
 /* ── Collapsible ───────────────────────────────────────────────── */
@@ -464,9 +464,9 @@ textarea {
 }
 
 .collapsible.active {
-    background: #2c7da0;
-    color: white;
-    border-color: #2c7da0;
+    background: #ADD8E6;
+    color: #000000;
+    border-color: #ADD8E6;
     margin-bottom: 0;
     border-radius: var(--btn-radius) var(--btn-radius) 0 0;
 }
@@ -482,7 +482,7 @@ textarea {
 .collapse-content {
     display: none;
     padding: var(--spacing-md);
-    border: 2px solid #2c7da0;
+    border: 2px solid #ADD8E6;
     border-top: none;
     border-radius: 0 0 var(--btn-radius) var(--btn-radius);
     background: white;
@@ -496,8 +496,8 @@ textarea {
 /* ── Score Card ────────────────────────────────────────────────── */
 .score-badge {
     display: inline-block;
-    background: #2c7da0;
-    color: white;
+    background: #ADD8E6;
+    color: #000000;
     padding: 3px 10px;
     border-radius: var(--btn-radius);
     font-size: 0.8rem;
@@ -524,7 +524,7 @@ textarea {
 .score-value {
     font-weight: 700;
     font-family: var(--font-mono);
-    color: #4a8c5c;
+    color: #B6DB98;
 }
 
 /* ── Responsive ────────────────────────────────────────────────── */

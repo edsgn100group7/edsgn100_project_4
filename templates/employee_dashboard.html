@@ -4,8 +4,8 @@
 
 {% block extra_css %}
 <style>
-    .preferred-day.selected { background: #2c7da0 !important; color: white; border-color: #2c7da0 !important; }
-    .vacation-day.selected  { background: #d4622a !important; color: white; border-color: #d4622a !important; }
+    .preferred-day.selected { background: #ADD8E6 !important; color: #000000; border-color: #ADD8E6 !important; }
+    .vacation-day.selected  { background: #FF997A !important; color: #000000; border-color: #FF997A !important; }
 
     .cmp-table { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: 0.78rem; }
     .cmp-table th, .cmp-table td { border: 1px solid var(--border); padding: 5px 7px; text-align: center; }
@@ -13,8 +13,8 @@
     .cmp-table td:first-child { font-weight: 700; background: var(--neutral); text-align: left; white-space: nowrap; }
 
     /* Requested column states */
-    .req-pref { background: #d0e8f5; color: #1a4f6e; font-weight: 700; }
-    .req-vac  { background: #fde8dd; color: #8b3a1a; font-weight: 700; }
+    .req-pref { background: #ADD8E6; color: #000000; font-weight: 700; }
+    .req-vac  { background: #FF997A; color: #000000; font-weight: 700; }
     .req-any  { background: #f5f5f5; color: #aaa; }
 
     /* Divider between sections */
@@ -168,10 +168,10 @@
 
                 <!-- Legend -->
                 <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm); margin-top: var(--spacing-md); font-size: 0.8rem; font-family: var(--font-mono);">
-                    <span><span style="background:#d0e8f5;color:#1a4f6e;padding:1px 6px;border-radius:2px;font-weight:700;">WFH?</span> Requested remote</span>
-                    <span><span style="background:#4a8c5c;color:white;padding:1px 6px;border-radius:2px;font-weight:700;">IN</span> In office</span>
-                    <span><span style="background:#2c7da0;color:white;padding:1px 6px;border-radius:2px;font-weight:700;">WFH</span> Remote</span>
-                    <span><span style="background:#d4622a;color:white;padding:1px 6px;border-radius:2px;font-weight:700;">VAC</span> Time off</span>
+                    <span><span style="background:#ADD8E6;color:#000000;padding:1px 6px;border-radius:2px;font-weight:700;">WFH?</span> Requested remote</span>
+                    <span><span style="background:#B6DB98;color:#000000;padding:1px 6px;border-radius:2px;font-weight:700;">IN</span> In office</span>
+                    <span><span style="background:#ADD8E6;color:#000000;padding:1px 6px;border-radius:2px;font-weight:700;">WFH</span> Remote</span>
+                    <span><span style="background:#FF997A;color:#000000;padding:1px 6px;border-radius:2px;font-weight:700;">VAC</span> Time off</span>
                 </div>
 
                 {% if pref_stats %}
