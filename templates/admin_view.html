@@ -358,6 +358,7 @@
                     Employees in the same area cluster earn a bonus when they share office/remote status — encouraging carpooling. Edit clusters in the employee list above.
                 </p>
 
+                <div style="max-height: 420px; overflow-y: auto;">
                 {% for cl, members in cluster_groups.items() %}
                 {% set cs = carpool_summary.get(cl, {}) %}
                 <div class="carpool-cluster">
@@ -400,6 +401,7 @@
                     </div>
                 </div>
                 {% endfor %}
+                </div>
 
                 {% if not cluster_groups %}
                 <p class="text-muted">No employees yet.</p>
