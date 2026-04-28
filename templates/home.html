@@ -1,44 +1,84 @@
 {% extends "base.html" %}
 
-{% block title %}PROWESS - Welcome{% endblock %}
+{% block title %}PROWESS{% endblock %}
 
 {% block content %}
-<div class="max-w-lg">
-    <h1>Hybrid Work Scheduling</h1>
+<style>
+    .page-container {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-height: 100vh !important;
+    }
 
-    <p class="text-muted" style="margin-bottom: var(--spacing-lg); font-size: 1.05rem;">
-        PROWESS optimizes office schedules by balancing employee preferences, team collaboration needs, and organizational constraints using advanced constraint solving.
-    </p>
+    main {
+        max-width: 500px !important;
+        padding: 2rem !important;
+        text-align: center !important;
+    }
 
-    <div class="grid">
-        <div class="card">
-            <h3>For Employees</h3>
-            <p style="margin-bottom: var(--spacing-md);">Tell us your preferences — which days you prefer to be in the office, any time off needed. Then see your optimized schedule and how your preferences were balanced against team and company needs.</p>
-            <a href="{{ url_for('employee_login') }}" class="btn btn-primary btn-lg btn-block">Enter Your Preferences</a>
-        </div>
+    main h1 {
+        font-size: 2.5rem !important;
+        margin-bottom: 0.5rem !important;
+    }
 
-        <div class="card">
-            <h3>For Managers</h3>
-            <p style="margin-bottom: var(--spacing-md);">View your team's schedule, see overlap metrics, and understand how collaboration needs are being met in the optimized schedule.</p>
-            <a href="{{ url_for('team_view') }}" class="btn btn-secondary btn-lg btn-block">View Team Schedule</a>
-        </div>
+    main > p {
+        font-size: 0.95rem !important;
+        color: #666 !important;
+        margin-bottom: 2.5rem !important;
+    }
 
-        <div class="card">
-            <h3>For Administrators</h3>
-            <p style="margin-bottom: var(--spacing-md);">Configure organizational constraints, set priorities, run the optimizer, and review detailed results across all employees and teams.</p>
-            <a href="{{ url_for('admin_view') }}" class="btn btn-warning btn-lg btn-block">Admin Dashboard</a>
-        </div>
-    </div>
+    .nav-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
 
-    <div class="card mt">
-        <h3>How It Works</h3>
-        <ol style="margin-left: var(--spacing-lg); margin-top: var(--spacing-md);">
-            <li style="margin-bottom: var(--spacing-sm);">Employees submit their preferred working days and any time off</li>
-            <li style="margin-bottom: var(--spacing-sm);">Managers define team collaboration requirements</li>
-            <li style="margin-bottom: var(--spacing-sm);">Administrators set organizational constraints (office capacity, minimum in-person days)</li>
-            <li style="margin-bottom: var(--spacing-sm);">The solver optimizes schedules balancing all constraints and preferences</li>
-            <li>Everyone sees their personalized schedule and understands how their preferences were accommodated</li>
-        </ol>
-    </div>
+    .nav-buttons a {
+        display: block;
+        padding: 1rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .nav-buttons a:nth-child(1) {
+        background: #4a8c5c;
+        color: white;
+    }
+
+    .nav-buttons a:nth-child(1):hover {
+        background: #3a7048;
+    }
+
+    .nav-buttons a:nth-child(2) {
+        background: #2c7da0;
+        color: white;
+    }
+
+    .nav-buttons a:nth-child(2):hover {
+        background: #226080;
+    }
+
+    .nav-buttons a:nth-child(3) {
+        background: #d4622a;
+        color: white;
+    }
+
+    .nav-buttons a:nth-child(3):hover {
+        background: #b8501e;
+    }
+</style>
+
+<h1>PROWESS</h1>
+<p>Hybrid Work Scheduling System</p>
+
+<div class="nav-buttons">
+    <a href="{{ url_for('employee_login') }}">Employee Portal</a>
+    <a href="{{ url_for('team_view') }}">Manager View</a>
+    <a href="{{ url_for('admin_view') }}">Admin Dashboard</a>
 </div>
 {% endblock %}
