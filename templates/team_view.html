@@ -306,10 +306,27 @@
             <div style="margin-bottom:5px;"><span class="text-muted">Time off:</span> <strong style="font-family:var(--font-mono);">{{ prefs.vacation_days | day_names }}</strong></div>
             <div><span class="text-muted">Range:</span> <strong style="font-family:var(--font-mono);">{{ prefs.min_office_days }}–{{ prefs.max_office_days }}/wk</strong></div>
             {% else %}<p class="text-muted">No preferences on file.</p>{% endif %}
-            {% if res and res.scores.employee %}
+            {% if res and prefs %}
             <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-                <span class="text-muted">Pref. match:</span>
-                <strong style="font-family:var(--font-mono);color:#4a8c5c;">{{ "%.2f"|format(res.scores.employee.score|default(0)) }}</strong>
+                {% set pref_days = prefs.preferred_days if prefs else [] %}
+                {% set vac_days  = prefs.vacation_days  if prefs else [] %}
+                {% set matches = namespace(count=0, total=0) %}
+
+                {% for idx in range(res.schedule|length) %}
+                  {% set d = idx % 5 %}
+                  {% if d in pref_days %}
+                    {% set matches.total = matches.total + 1 %}
+                    {% set status = res.schedule[idx] %}
+                    {% if status != 'office' %}
+                      {% set matches.count = matches.count + 1 %}
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+
+                {% set pct = (matches.count / matches.total * 100) if matches.total > 0 else 0 %}
+                <span class="text-muted">Remote preference met:</span>
+                <strong style="font-family:var(--font-mono);color:#4a8c5c;">{{ "%.0f"|format(pct) }}%</strong>
+                <span style="font-size:0.75rem;color:#999;margin-left:4px;">({{ matches.count }}/{{ matches.total }})</span>
             </div>
             {% endif %}
         </div>
